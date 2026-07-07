@@ -2,6 +2,11 @@
 
 A guided programming course for kids, in Python and Lua.
 
+Website: [gray.academy](https://gray.academy) — course overview,
+install instructions per OS, and downloads. The site is
+[index.html](index.html), served from the repo root by GitHub Pages
+(`CNAME` holds the custom domain, `.nojekyll` disables Jekyll).
+
 ## Run it
 
 ```sh
