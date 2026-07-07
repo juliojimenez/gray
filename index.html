@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gray — a programming course for kids</title>
+<meta name="description" content="Gray teaches kids real programming, one line at a time. A friendly guided course for Python and Lua that runs right in the terminal — no accounts, no ads, no installation beyond the language itself.">
+<meta property="og:title" content="Gray — a programming course for kids">
+<meta property="og:description" content="Real code, one line at a time. A free, guided Python &amp; Lua course for kids that runs in the terminal.">
+<meta property="og:url" content="https://gray.academy">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐘</text></svg>">
+<style>
+  :root {
+    --bg: #faf7f2;
+    --bg-card: #ffffff;
+    --ink: #2b2f36;
+    --ink-soft: #5c6470;
+    --accent: #6c5ce7;
+    --accent-2: #00b894;
+    --py: #3776ab;
+    --lua: #000080;
+    --star: #f5b942;
+    --term-bg: #1e222a;
+    --term-ink: #d8dee9;
+    --border: #e8e2d8;
+    --radius: 16px;
+    --shadow: 0 2px 12px rgba(43, 47, 54, .07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181d;
+      --bg-card: #1f232b;
+      --ink: #e8e6e1;
+      --ink-soft: #a8adb8;
+      --accent: #8f82f5;
+      --accent-2: #26d0a8;
+      --py: #6ba3d6;
+      --lua: #7a7af0;
+      --term-bg: #0d0f13;
+      --term-ink: #d8dee9;
+      --border: #313743;
+      --shadow: 0 2px 12px rgba(0, 0, 0, .35);
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  code, pre, .term {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 64px 0; }
+
+  /* ---------- hero ---------- */
+  header {
+    padding: 72px 0 56px;
+    text-align: center;
+  }
+  .mascot { font-size: 72px; line-height: 1; }
+  h1 {
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    letter-spacing: -.02em;
+    margin: 12px 0 8px;
+  }
+  h1 .grad {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .tagline {
+    font-size: 1.25rem;
+    color: var(--ink-soft);
+    max-width: 34em;
+    margin: 0 auto 28px;
+  }
+  .cta-row {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 2px solid transparent;
+    transition: transform .1s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--accent-2); color: #fff; }
+  .btn-ghost { border-color: var(--border); color: var(--ink); background: var(--bg-card); }
+  .free-note { margin-top: 16px; font-size: .9rem; color: var(--ink-soft); }
+
+  /* ---------- terminal demo ---------- */
+  .term {
+    background: var(--term-bg);
+    color: var(--term-ink);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    max-width: 620px;
+    margin: 40px auto 0;
+    text-align: left;
+    overflow: hidden;
+  }
+  .term-bar {
+    background: rgba(255,255,255,.07);
+    padding: 8px 14px;
+    font-size: .8rem;
+    color: #9aa3b2;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+  .term-body {
+    padding: 18px 20px 22px;
+    font-size: .92rem;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+  .t-dim { color: #7d8697; }
+  .t-you { color: #c792ea; }
+  .t-star { color: #ffd166; }
+  .t-comp { color: #82e0aa; }
+
+  /* ---------- sections ---------- */
+  h2 {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    text-align: center;
+    letter-spacing: -.02em;
+    margin-bottom: 8px;
+  }
+  .sub {
+    text-align: center;
+    color: var(--ink-soft);
+    max-width: 40em;
+    margin: 0 auto 40px;
+  }
+
+  /* ---------- features ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+  }
+  .card .emoji { font-size: 1.8rem; }
+  .card h3 { margin: 8px 0 6px; font-size: 1.05rem; }
+  .card p { color: var(--ink-soft); font-size: .95rem; }
+
+  /* ---------- curriculum ---------- */
+  .curriculum { counter-reset: lesson; max-width: 680px; margin: 0 auto; }
+  .lesson {
+    display: flex; gap: 14px; align-items: baseline;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 10px;
+  }
+  .lesson::before {
+    counter-increment: lesson;
+    content: counter(lesson);
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 1.4em;
+    text-align: right;
+  }
+  .lesson.project { border-left: 4px solid var(--star); }
+  .lesson strong { display: block; }
+  .lesson span { color: var(--ink-soft); font-size: .92rem; }
+
+  /* ---------- get started tabs ---------- */
+  .tabs {
+    display: flex; justify-content: center; gap: 10px; margin-bottom: 28px;
+  }
+  .tab-btn {
+    padding: 10px 26px;
+    border-radius: 999px;
+    border: 2px solid var(--border);
+    background: var(--bg-card);
+    color: var(--ink);
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .tab-btn.active-py { border-color: var(--py); color: var(--py); }
+  .tab-btn.active-lua { border-color: var(--lua); color: var(--lua); }
+  @media (prefers-color-scheme: dark) {
+    .tab-btn.active-py { color: var(--py); }
+    .tab-btn.active-lua { color: var(--lua); }
+  }
+  .track { display: none; }
+  .track.visible { display: block; }
+  .steps { max-width: 680px; margin: 0 auto; }
+  .step {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .step h3 { margin-bottom: 8px; }
+  .step h3 .n {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    width: 1.6em; height: 1.6em;
+    border-radius: 50%;
+    text-align: center; line-height: 1.6em;
+    font-size: .85em;
+    margin-right: 8px;
+  }
+  .step p, .step li { color: var(--ink-soft); font-size: .96rem; }
+  .step ul { padding-left: 20px; margin-top: 6px; }
+  .step li { margin-bottom: 6px; }
+  .step code, .os code {
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: .88em;
+  }
+  pre.cmd {
+    background: var(--term-bg);
+    color: var(--term-ink);
+    padding: 12px 16px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 10px 0;
+    font-size: .9rem;
+  }
+  .os { margin-top: 10px; }
+  .os summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+  .os[open] summary { margin-bottom: 6px; }
+
+  /* ---------- downloads ---------- */
+  .dl-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .dl-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 26px 30px;
+    text-align: center;
+    min-width: 260px;
+  }
+  .dl-card .file { font-weight: 700; font-size: 1.2rem; }
+  .dl-card p { color: var(--ink-soft); font-size: .9rem; margin: 6px 0 14px; }
+
+  /* ---------- faq ---------- */
+  .faq { max-width: 680px; margin: 0 auto; }
+  .faq details {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 10px;
+  }
+  .faq summary { font-weight: 600; cursor: pointer; }
+  .faq p { color: var(--ink-soft); margin-top: 8px; font-size: .95rem; }
+
+  footer {
+    text-align: center;
+    padding: 48px 24px 56px;
+    color: var(--ink-soft);
+    font-size: .9rem;
+  }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="mascot" aria-hidden="true">🐘</div>
+  <h1>Meet <span class="grad">Gray</span></h1>
+  <p class="tagline">A programming course for kids that teaches <strong>real code, one line at a time</strong> — right in the terminal, in Python or Lua.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="#get-started" onclick="pickTrack('py')">🐍 Start with Python</a>
+    <a class="btn btn-secondary" href="#get-started" onclick="pickTrack('lua')">🌙 Start with Lua</a>
+    <a class="btn btn-ghost" href="#download">⬇ Downloads</a>
+  </div>
+  <p class="free-note">Free &amp; open. One file. No accounts, no ads, no internet needed.</p>
+
+  <div class="term" aria-label="Example of a Gray lesson in the terminal">
+    <div class="term-bar"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>&nbsp;Terminal — python gray.py</div>
+    <div class="term-body"><span class="t-dim">$</span> python gray.py
+
+  Welcome to GRAY! 🐘  Let's learn Python.
+
+First secret: your computer is a GIANT calculator.
+Try it! Type:  2 + 2   and press Enter.
+
+  <span class="t-you">you></span> 2 + 2
+  <span class="t-comp">= 4</span>
+
+  <span class="t-star">⭐ Perfect!</span>
+
+You just wrote your first Python! 🎉</div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Why kids (and parents) love Gray</h2>
+    <p class="sub">Gray is a friendly guide that lives in one file. It explains an idea, the student types real code, and Gray runs it, checks it, and cheers.</p>
+    <div class="grid">
+      <div class="card"><div class="emoji">⌨️</div><h3>Real code from minute one</h3><p>No toy blocks. Kids type genuine Python or Lua — the exact same code professionals write — and see it run instantly.</p></div>
+      <div class="card"><div class="emoji">🗺️</div><h3>11 guided sections</h3><p>From “your computer is a giant calculator” to variables, decisions, loops, input and functions — each idea builds on the last.</p></div>
+      <div class="card"><div class="emoji">🔮</div><h3>3 real projects</h3><p>Kids build a mind-reading number game, a silly story machine, and a robot doorkeeper — programs they can proudly demo to the family.</p></div>
+      <div class="card"><div class="emoji">💡</div><h3>Hints, not punishments</h3><p>Wrong answers get a gentle nudge and another try. Stuck? Type <code>hint</code>. Every solved challenge earns a ⭐.</p></div>
+      <div class="card"><div class="emoji">💾</div><h3>Progress is saved</h3><p>Type <code>quit</code> anytime — Gray remembers exactly where the student left off and picks up there next time.</p></div>
+      <div class="card"><div class="emoji">🛟</div><h3>Safe to explore</h3><p>Kids can experiment freely. Even a loop that never ends gets rescued — Gray plays lifeguard and stops it with a smile.</p></div>
+      <div class="card"><div class="emoji">🎓</div><h3>Graduates into the real world</h3><p>In the final section the student builds their own script file, runs it with <code>python my_first_program.py</code>, and discovers the real REPL.</p></div>
+      <div class="card"><div class="emoji">🪶</div><h3>Nothing to set up</h3><p>Gray is a single file with zero dependencies. If Python or Lua runs on the computer, Gray runs. Fully offline.</p></div>
+      <div class="card"><div class="emoji">🐍🌙</div><h3>Two languages, one course</h3><p>The same adventure exists in Python and Lua. Finish one track, then see how the other language says the same things!</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="curriculum">
+  <div class="wrap">
+    <h2>The adventure map</h2>
+    <p class="sub">Eleven sections, each one unlocking a new superpower.</p>
+    <div class="curriculum">
+      <div class="lesson"><div><strong>Introduction</strong><span>The computer as a giant calculator, and making it talk with <code>print</code>.</span></div></div>
+      <div class="lesson"><div><strong>Variables — give things a name</strong><span>Boxes with name stickers: remember numbers and words, glue words together.</span></div></div>
+      <div class="lesson"><div><strong>If this, then that</strong><span>Yes/no questions, True and False, and a secret-club password door.</span></div></div>
+      <div class="lesson"><div><strong>Loops — do it again!</strong><span>Cheer five times with one line, print times tables, roll dice. 🎲</span></div></div>
+      <div class="lesson"><div><strong>Input — the computer asks YOU</strong><span>Programs that listen, ask questions, and turn answers into numbers.</span></div></div>
+      <div class="lesson"><div><strong>While — the loop with a brain</strong><span>A rocket countdown that stops itself, and the magic doubling coin.</span></div></div>
+      <div class="lesson"><div><strong>Functions — teach it new words</strong><span>The computer doesn't know <code>cheer()</code>… until your kid teaches it.</span></div></div>
+      <div class="lesson project"><div><strong>Project: The Number Wizard 🔮</strong><span>Build a real guessing game with a hidden random secret.</span></div></div>
+      <div class="lesson project"><div><strong>Project: The Silly Story Machine 📖</strong><span>A mad-libs machine — a brand-new ridiculous story every run.</span></div></div>
+      <div class="lesson project"><div><strong>Project: The Club Doorkeeper 🤖</strong><span>The capstone: a robot that greets, guards, and throws a party.</span></div></div>
+      <div class="lesson project"><div><strong>Graduation — programs of your own 🎓</strong><span>Build a real script file line by line, run it yourself, meet the REPL.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="get-started">
+  <div class="wrap">
+    <h2>Get started in 3 steps</h2>
+    <p class="sub">Pick a track. Python is the world's most popular first language; Lua is small, friendly, and powers games like Roblox. You can't choose wrong — the course is the same adventure in both.</p>
+
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active-py" id="tab-py" role="tab" aria-selected="true" onclick="pickTrack('py')">🐍 Python track</button>
+      <button class="tab-btn" id="tab-lua" role="tab" aria-selected="false" onclick="pickTrack('lua')">🌙 Lua track</button>
+    </div>
+
+    <!-- ============ PYTHON TRACK ============ -->
+    <div class="track visible steps" id="track-py" role="tabpanel">
+      <div class="step">
+        <h3><span class="n">1</span>Install Python</h3>
+        <p>First check if it's already there. Open a terminal and type:</p>
+        <pre class="cmd">python3 --version</pre>
+        <p>If you see something like <code>Python 3.12.4</code>, you're done — skip to step 2! Otherwise:</p>
+        <details class="os"><summary>🍎 macOS</summary>
+          <ul>
+            <li>Macs usually include Python 3 already (try the command above in the <strong>Terminal</strong> app).</li>
+            <li>If not, download the installer from <a href="https://www.python.org/downloads/">python.org/downloads</a> and run it.</li>
+          </ul>
+        </details>
+        <details class="os"><summary>🪟 Windows</summary>
+          <ul>
+            <li>Download the installer from <a href="https://www.python.org/downloads/">python.org/downloads</a>.</li>
+            <li><strong>Important:</strong> on the first installer screen, tick <em>“Add python.exe to PATH”</em>.</li>
+            <li>Then open <strong>Command Prompt</strong> and check with <code>python --version</code>.</li>
+          </ul>
+        </details>
+        <details class="os"><summary>🐧 Linux</summary>
+          <ul>
+            <li>Almost always preinstalled. If not: <code>sudo apt install python3</code> (Debian/Ubuntu) or your distro's equivalent.</li>
+          </ul>
+        </details>
+      </div>
+      <div class="step">
+        <h3><span class="n">2</span>Download Gray</h3>
+        <p><a class="btn btn-primary" href="gray.py" download>⬇ Download gray.py</a></p>
+        <p style="margin-top:10px">Save it somewhere easy to find, like a <code>gray</code> folder in your home directory. Or grab it from the terminal:</p>
+        <pre class="cmd">curl -O https://gray.academy/gray.py</pre>
+      </div>
+      <div class="step">
+        <h3><span class="n">3</span>Start the adventure</h3>
+        <p>In the terminal, go to the folder where you saved it and run:</p>
+        <pre class="cmd">python3 gray.py</pre>
+        <p>(On Windows it's usually <code>python gray.py</code>.) Gray takes it from there — say hi! 🐘</p>
+      </div>
+    </div>
+
+    <!-- ============ LUA TRACK ============ -->
+    <div class="track steps" id="track-lua" role="tabpanel">
+      <div class="step">
+        <h3><span class="n">1</span>Install Lua</h3>
+        <p>First check if it's already there. Open a terminal and type:</p>
+        <pre class="cmd">lua -v</pre>
+        <p>If you see something like <code>Lua 5.4</code> (any 5.x works), you're done — skip to step 2! Otherwise:</p>
+        <details class="os"><summary>🍎 macOS</summary>
+          <ul>
+            <li>With <a href="https://brew.sh">Homebrew</a>: <code>brew install lua</code></li>
+            <li>No Homebrew? Install it first from <a href="https://brew.sh">brew.sh</a> (one command), then run the line above.</li>
+          </ul>
+        </details>
+        <details class="os"><summary>🪟 Windows</summary>
+          <ul>
+            <li>With winget (built into Windows 10/11): open PowerShell and run <code>winget install DEVCOM.Lua</code></li>
+            <li>Or download prebuilt binaries from <a href="https://luabinaries.sourceforge.net/">luabinaries.sourceforge.net</a> and add the folder to your PATH.</li>
+          </ul>
+        </details>
+        <details class="os"><summary>🐧 Linux</summary>
+          <ul>
+            <li><code>sudo apt install lua5.4</code> (Debian/Ubuntu) or your distro's equivalent. On some systems the command is then <code>lua5.4</code> instead of <code>lua</code>.</li>
+          </ul>
+        </details>
+      </div>
+      <div class="step">
+        <h3><span class="n">2</span>Download Gray</h3>
+        <p><a class="btn btn-secondary" href="gray.lua" download>⬇ Download gray.lua</a></p>
+        <p style="margin-top:10px">Save it somewhere easy to find, like a <code>gray</code> folder in your home directory. Or grab it from the terminal:</p>
+        <pre class="cmd">curl -O https://gray.academy/gray.lua</pre>
+      </div>
+      <div class="step">
+        <h3><span class="n">3</span>Start the adventure</h3>
+        <p>In the terminal, go to the folder where you saved it and run:</p>
+        <pre class="cmd">lua gray.lua</pre>
+        <p>Gray takes it from there — say hi! 🐘</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2>Downloads</h2>
+    <p class="sub">The whole course is one file per language. That's it — that's the download.</p>
+    <div class="dl-row">
+      <div class="dl-card">
+        <div class="emoji" style="font-size:2rem">🐍</div>
+        <div class="file">gray.py</div>
+        <p>Python track · runs with Python 3</p>
+        <a class="btn btn-primary" href="gray.py" download>⬇ Download</a>
+      </div>
+      <div class="dl-card">
+        <div class="emoji" style="font-size:2rem">🌙</div>
+        <div class="file">gray.lua</div>
+        <p>Lua track · runs with Lua 5.1+</p>
+        <a class="btn btn-secondary" href="gray.lua" download>⬇ Download</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Questions parents ask</h2>
+    <div class="faq" style="margin-top:32px">
+      <details>
+        <summary>What age is Gray for?</summary>
+        <p>Roughly 8–13, or any curious beginner who can read and type. Younger kids do great with a grown-up sitting alongside for the first sections.</p>
+      </details>
+      <details>
+        <summary>Which track should we pick — Python or Lua?</summary>
+        <p>Either! Python is the most common first language in schools and careers. Lua is lightweight and famous in game modding (Roblox uses a close cousin). The course content is the same adventure in both — many kids finish one track and replay the other to compare.</p>
+      </details>
+      <details>
+        <summary>Does my kid need the internet while learning?</summary>
+        <p>No. Once the file is downloaded, everything runs locally in the terminal. No accounts, no tracking, no ads.</p>
+      </details>
+      <details>
+        <summary>What if they type something wrong?</summary>
+        <p>Gray never scolds. Mistakes get a friendly explanation and another try, and typing <code>hint</code> reveals the answer shape. Even errors are framed as “that happens to every programmer.”</p>
+      </details>
+      <details>
+        <summary>Can they stop midway?</summary>
+        <p>Yes — typing <code>quit</code> saves progress automatically. Next time Gray says “welcome back” and continues exactly where they stopped. The <code>menu</code> command lets them revisit any finished section.</p>
+      </details>
+      <details>
+        <summary>What do they have at the end?</summary>
+        <p>Three working programs they built themselves, plus <code>my_first_program.py</code> (or <code>.lua</code>) — a real script file assembled line by line during graduation, which they know how to run and edit on their own.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>🐘 Gray — made with love for curious kids.</p>
+  <p style="margin-top:6px">Run it: <code>python gray.py</code> or <code>lua gray.lua</code></p>
+</footer>
+
+<script>
+  function pickTrack(which) {
+    var py = which === 'py';
+    document.getElementById('track-py').classList.toggle('visible', py);
+    document.getElementById('track-lua').classList.toggle('visible', !py);
+    var tabPy = document.getElementById('tab-py');
+    var tabLua = document.getElementById('tab-lua');
+    tabPy.classList.toggle('active-py', py);
+    tabLua.classList.toggle('active-lua', !py);
+    tabPy.setAttribute('aria-selected', py);
+    tabLua.setAttribute('aria-selected', !py);
+  }
+</script>
+
+</body>
+</html>
