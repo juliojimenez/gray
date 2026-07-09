@@ -29,9 +29,16 @@ local function dim(t)     return paint(t, "2")  end
 
 local function say(text) print(text or "") end
 
+-- Characters on screen, not bytes: #text overshoots for multi-byte
+-- characters like the em dash. Count UTF-8 characters instead
+-- (continuation bytes 128-191 never start a character).
+local function display_len(text)
+  local _, count = text:gsub("[^\128-\191]", "")
+  return count
+end
+
 local function banner(text)
-  local line = string.rep("─", #text + 2)
-  say()
+  local line = string.rep("─", display_len(text) + 4)
   say(cyan("╭" .. line .. "╮"))
   say(cyan("│  " .. bold(text) .. "  │"))
   say(cyan("╰" .. line .. "╯"))
@@ -80,7 +87,7 @@ local SECTIONS = {
       {
         say = "Hi! I'm Gray. 👋\n" ..
               "I'm going to teach you how to talk to your computer\n" ..
-              "using a language called LUA.\n" ..
+              "using a language called Lua.\n" ..
               "\n" ..
               "Here's how it works: I explain something, then YOU try it.\n" ..
               "You type real Lua code and press Enter.\n" ..
@@ -101,7 +108,7 @@ local SECTIONS = {
         expect = 4,
       },
       {
-        say = "You just wrote your first Lua! 🎉\n" ..
+        say = "You just wrote your first Lua script! 🎉\n" ..
               "\n" ..
               "Now you try one on your own: make Lua add  5 + 3.",
         task = true,
@@ -184,7 +191,7 @@ local SECTIONS = {
               "  ✅ print() makes the computer talk\n" ..
               "  ✅ Quotes = say it exactly. No quotes = solve it first.\n" ..
               "\n" ..
-              "More sections are coming soon. See you next time!",
+              "You are doing awesome! Next up: variables — giving things a name. See you there!",
       },
     },
   },
@@ -1750,9 +1757,9 @@ local function main()
   end
 
   if section == 1 and lesson == 1 then
-    say(bold("\n  Welcome to Gray! 🐘  Let's learn Lua.\n"))
+    say(bold("\n  Welcome to Gray! 🐘 Let's learn Lua.\n"))
   else
-    say(bold("\n  Welcome back! 🐘  Let's pick up where you left off.\n"))
+    say(bold("\n  Welcome back! 🐘 Let's pick up where you left off.\n"))
   end
 
   while true do
