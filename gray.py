@@ -35,7 +35,6 @@ def say(text=""):
 
 def banner(text):
     line = "─" * (len(text) + 4)
-    say()
     say(cyan(f"╭{line}╮"))
     say(cyan(f"│  {bold(text)}  │"))
     say(cyan(f"╰{line}╯"))
@@ -87,7 +86,7 @@ SECTIONS = [
                 "say": (
                     "Hi! I'm Gray. 👋\n"
                     "I'm going to teach you how to talk to your computer\n"
-                    "using a language called PYTHON.\n"
+                    "using a language called Python.\n"
                     "\n"
                     "Here's how it works: I explain something, then YOU try it.\n"
                     "You type real Python code and press Enter.\n"
@@ -112,7 +111,7 @@ SECTIONS = [
             },
             {
                 "say": (
-                    "You just wrote your first Python! 🎉\n"
+                    "You just wrote your first Python script! 🎉\n"
                     "\n"
                     "Now you try one on your own: make Python add  5 + 3."
                 ),
@@ -209,7 +208,7 @@ SECTIONS = [
                     "  ✅ print() makes the computer talk\n"
                     "  ✅ Quotes = say it exactly. No quotes = solve it first.\n"
                     "\n"
-                    "More sections are coming soon. See you next time!"
+                    "You are doing awesome! Next up: variables — giving things a name. See you there!"
                 ),
             },
         ],
@@ -1886,9 +1885,9 @@ def main():
         section, lesson = 0, 0
 
     if section == 0 and lesson == 0:
-        say(bold("\n  Welcome to Gray! 🐘  Let's learn Python.\n"))
+        say(bold("\n  Welcome to Gray! 🐘 Let's learn Python.\n"))
     else:
-        say(bold("\n  Welcome back! 🐘  Let's pick up where you left off.\n"))
+        say(bold("\n  Welcome back! 🐘 Let's pick up where you left off.\n"))
 
     while True:
         choice = show_menu(section)
