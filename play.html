@@ -527,7 +527,9 @@
     return;
   }
 
-  fetch(SOURCE_FILE)
+  // no-cache = always revalidate: the browser course must stay as fresh
+  // as the published one (its built-in self-updater is disabled here)
+  fetch(SOURCE_FILE, { cache: "no-cache" })
     .then((res) => {
       if (!res.ok) throw new Error("HTTP " + res.status);
       return res.text();

@@ -17,6 +17,7 @@ const PROGRAM_FILE = "my_first_program.py";
 const BOOTSTRAP = `
 import os, sys
 os.environ["GRAY_NO_UPDATE"] = "1"  # the browser copy is always current
+os.environ["GRAY_BROWSER"] = "1"    # lessons explain browser buttons
 _path = "${HOME}gray.py"
 _src = open(_path, encoding="utf-8").read()
 _globals = {"__name__": "__main__", "__file__": _path}

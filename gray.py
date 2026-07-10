@@ -15,8 +15,12 @@ import sys
 PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              ".gray-progress-python.json")
 
-GRAY_VERSION = 2  # bumped on every release; the update check compares this
+GRAY_VERSION = 3  # bumped on every release; the update check compares this
 UPDATE_URL = "https://gray.academy/gray.py"
+
+# The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so
+# lessons can explain browser buttons instead of terminal commands.
+IN_BROWSER = bool(os.environ.get("GRAY_BROWSER"))
 
 # ---------------------------------------------------------------------------
 # Pretty terminal output
@@ -54,6 +58,7 @@ def nudge(text):
 #
 # A lesson is a dict:
 #   say         text shown to the student (always required)
+#   say_browser shown instead of say when Gray runs in the browser
 #   task        if True, the student must type code that passes the checks
 #   hint        shown when the student types: hint
 #   must_use    list of substrings the code must contain (e.g. ["+"])
@@ -1459,6 +1464,22 @@ SECTIONS = [
                     "    my_first_program.py\n"
                     "Every line you type now gets SAVED into it. Let's go!"
                 ),
+                "say_browser": (
+                    "🎓 Welcome to GRADUATION. 🎓\n"
+                    "\n"
+                    "Here's the last secret Gray has been keeping:\n"
+                    "everything you typed here was REAL Python — but real\n"
+                    "programmers don't type one line at a time forever.\n"
+                    "They save MANY lines in a FILE, and the computer runs\n"
+                    "the whole file, top to bottom, in one go.\n"
+                    "\n"
+                    "In fact... Gray itself is just a program like that —\n"
+                    "and right now it's running inside your browser!\n"
+                    "\n"
+                    "So for your final challenge, we'll build YOUR OWN file:\n"
+                    "    my_first_program.py\n"
+                    "Every line you type now gets SAVED into it. Let's go!"
+                ),
             },
             {
                 "say": (
@@ -1539,6 +1560,23 @@ SECTIONS = [
                     "any text editor. Change the words. Add more lines.\n"
                     "Run it again. THAT is programming."
                 ),
+                "say_browser": (
+                    "🎁 Your program is complete! It's saved as\n"
+                    "my_first_program.py  — Gray keeps it safe in this browser.\n"
+                    "\n"
+                    "HERE'S HOW TO RUN IT:\n"
+                    "  1. Look at the TOP of this page — a new button appeared:\n"
+                    "\n"
+                    "         ▶ Run my program\n"
+                    "\n"
+                    "  2. Click it, and watch YOUR program run, top to bottom!\n"
+                    "  3. Come back anytime with  🐘 Back to Gray.\n"
+                    "\n"
+                    "And here's the best part: the  ⬇  button next to it\n"
+                    "downloads your program as a real file. Open it in any\n"
+                    "text editor. Change the words. Add more lines.\n"
+                    "Run it again. THAT is programming."
+                ),
             },
             {
                 "say": (
@@ -1558,6 +1596,20 @@ SECTIONS = [
                     "\n"
                     "(To leave the REPL, type  exit()  and press Enter.)"
                 ),
+                "say_browser": (
+                    "One more secret before you graduate. 🤫\n"
+                    "\n"
+                    "Talking to Python one line at a time — like you've been\n"
+                    "doing at the  you>  prompt — has a fancy name: the REPL.\n"
+                    "\n"
+                    "And on a real computer you don't even need Gray for it:\n"
+                    "with Python installed, type just  python  in a terminal\n"
+                    "and Python answers with its own prompt:  >>>\n"
+                    "Try  2 + 2  in there some day. Old friends. 😉\n"
+                    "\n"
+                    "(gray.academy shows how to get Python on your own\n"
+                    "computer whenever you're ready.)"
+                ),
             },
             {
                 "say": (
@@ -1569,6 +1621,22 @@ SECTIONS = [
                     "  ✅ save programs in files and run them:\n"
                     "         python my_first_program.py\n"
                     "  ✅ talk to Python directly in the REPL:  python\n"
+                    "\n"
+                    "Here's the biggest secret of all: every program ever\n"
+                    "written — games, robots, rockets — is built from\n"
+                    "exactly the pieces you now hold.\n"
+                    "\n"
+                    "Gray is SO proud of you.\n"
+                    "THE END... or really: THE BEGINNING. 🐘💙"
+                ),
+                "say_browser": (
+                    "🎓🎓🎓  YOU FINISHED THE WHOLE COURSE!  🎓🎓🎓\n"
+                    "\n"
+                    "You can now:\n"
+                    "  ✅ write real Python, line by line\n"
+                    "  ✅ build games, machines, and robots\n"
+                    "  ✅ run your very own program — that ▶ button is yours!\n"
+                    "  ✅ and on any real computer:  python my_first_program.py\n"
                     "\n"
                     "Here's the biggest secret of all: every program ever\n"
                     "written — games, robots, rockets — is built from\n"
@@ -1910,7 +1978,10 @@ def run_section(section_index, start_lesson):
             if box not in STUDENT_ENV:
                 run_code(code)
         say()
-        say(lesson["say"])
+        if IN_BROWSER and "say_browser" in lesson:
+            say(lesson["say_browser"])
+        else:
+            say(lesson["say"])
         say()
         if lesson.get("task"):
             result = do_task(lesson, praise_index)

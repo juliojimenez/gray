@@ -9,8 +9,12 @@
 
 local PROGRESS_FILE = (arg[0]:match("(.*[/\\])") or "") .. ".gray-progress-lua.txt"
 
-local GRAY_VERSION = 2 -- bumped on every release; the update check compares this
+local GRAY_VERSION = 3 -- bumped on every release; the update check compares this
 local UPDATE_URL = "https://gray.academy/gray.lua"
+
+-- The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so
+-- lessons can explain browser buttons instead of terminal commands.
+local IN_BROWSER = os.getenv("GRAY_BROWSER") ~= nil
 
 ---------------------------------------------------------------------------
 -- Pretty terminal output
@@ -55,6 +59,7 @@ local function nudge(text) say(yellow("\n  🤔 " .. text .. "\n")) end
 --
 -- A lesson is a table:
 --   say         text shown to the student (always required)
+--   say_browser shown instead of say when Gray runs in the browser
 --   task        if true, the student must type code that passes the checks
 --   hint        shown when the student types: hint
 --   must_use    list of substrings the code must contain (e.g. {"+"})
@@ -1253,6 +1258,20 @@ local SECTIONS = {
               "So for your final challenge, we'll build YOUR OWN file:\n" ..
               "    my_first_program.lua\n" ..
               "Every line you type now gets SAVED into it. Let's go!",
+        say_browser = "🎓 Welcome to GRADUATION. 🎓\n" ..
+              "\n" ..
+              "Here's the last secret Gray has been keeping:\n" ..
+              "everything you typed here was REAL Lua — but real\n" ..
+              "programmers don't type one line at a time forever.\n" ..
+              "They save MANY lines in a FILE, and the computer runs\n" ..
+              "the whole file, top to bottom, in one go.\n" ..
+              "\n" ..
+              "In fact... Gray itself is just a program like that —\n" ..
+              "and right now it's running inside your browser!\n" ..
+              "\n" ..
+              "So for your final challenge, we'll build YOUR OWN file:\n" ..
+              "    my_first_program.lua\n" ..
+              "Every line you type now gets SAVED into it. Let's go!",
       },
       {
         say = "Every great program starts with a proud announcement:\n" ..
@@ -1321,6 +1340,21 @@ local SECTIONS = {
               "And here's the best part: open my_first_program.lua in\n" ..
               "any text editor. Change the words. Add more lines.\n" ..
               "Run it again. THAT is programming.",
+        say_browser = "🎁 Your program is complete! It's saved as\n" ..
+              "my_first_program.lua  — Gray keeps it safe in this browser.\n" ..
+              "\n" ..
+              "HERE'S HOW TO RUN IT:\n" ..
+              "  1. Look at the TOP of this page — a new button appeared:\n" ..
+              "\n" ..
+              "         ▶ Run my program\n" ..
+              "\n" ..
+              "  2. Click it, and watch YOUR program run, top to bottom!\n" ..
+              "  3. Come back anytime with  🐘 Back to Gray.\n" ..
+              "\n" ..
+              "And here's the best part: the  ⬇  button next to it\n" ..
+              "downloads your program as a real file. Open it in any\n" ..
+              "text editor. Change the words. Add more lines.\n" ..
+              "Run it again. THAT is programming.",
       },
       {
         say = "One more secret before you graduate. 🤫\n" ..
@@ -1338,6 +1372,18 @@ local SECTIONS = {
               "Try  2 + 2  in there. Old friends. 😉\n" ..
               "\n" ..
               "(To leave the REPL, type  os.exit()  and press Enter.)",
+        say_browser = "One more secret before you graduate. 🤫\n" ..
+              "\n" ..
+              "Talking to Lua one line at a time — like you've been\n" ..
+              "doing at the  you>  prompt — has a fancy name: the REPL.\n" ..
+              "\n" ..
+              "And on a real computer you don't even need Gray for it:\n" ..
+              "with Lua installed, type just  lua  in a terminal and\n" ..
+              "Lua answers with its own prompt:  >\n" ..
+              "Try  2 + 2  in there some day. Old friends. 😉\n" ..
+              "\n" ..
+              "(gray.academy shows how to get Lua on your own\n" ..
+              "computer whenever you're ready.)",
       },
       {
         say = "🎓🎓🎓  YOU FINISHED THE WHOLE COURSE!  🎓🎓🎓\n" ..
@@ -1348,6 +1394,20 @@ local SECTIONS = {
               "  ✅ save programs in files and run them:\n" ..
               "         lua my_first_program.lua\n" ..
               "  ✅ talk to Lua directly in the REPL:  lua\n" ..
+              "\n" ..
+              "Here's the biggest secret of all: every program ever\n" ..
+              "written — games, robots, rockets — is built from\n" ..
+              "exactly the pieces you now hold.\n" ..
+              "\n" ..
+              "Gray is SO proud of you.\n" ..
+              "THE END... or really: THE BEGINNING. 🐘💙",
+        say_browser = "🎓🎓🎓  YOU FINISHED THE WHOLE COURSE!  🎓🎓🎓\n" ..
+              "\n" ..
+              "You can now:\n" ..
+              "  ✅ write real Lua, line by line\n" ..
+              "  ✅ build games, machines, and robots\n" ..
+              "  ✅ run your very own program — that ▶ button is yours!\n" ..
+              "  ✅ and on any real computer:  lua my_first_program.lua\n" ..
               "\n" ..
               "Here's the biggest secret of all: every program ever\n" ..
               "written — games, robots, rockets — is built from\n" ..
@@ -1791,7 +1851,7 @@ local function run_section(section_index, start_lesson)
       if rawget(STUDENT_ENV, box) == nil then run_code(code) end
     end
     say()
-    say(lesson.say)
+    say(IN_BROWSER and lesson.say_browser or lesson.say)
     say()
     local result
     if lesson.task then

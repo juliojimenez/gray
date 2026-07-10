@@ -111,6 +111,7 @@ text (shown with "press Enter to continue") or a task with checks:
 | field            | meaning                                               |
 |------------------|-------------------------------------------------------|
 | `say`            | text shown to the student                             |
+| `say_browser`    | shown instead of `say` when Gray runs in the browser (`GRAY_BROWSER=1`, set by the play-page workers) — used by graduation lessons to explain the ▶ Run / ⬇ download buttons instead of terminal commands |
 | `task`           | student must type code that passes the checks         |
 | `hint`           | shown when the student types `hint`                   |
 | `must_use`       | substrings the code must contain (e.g. `["+"]`)       |

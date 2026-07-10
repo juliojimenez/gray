@@ -91,6 +91,7 @@ io.popen = function() return nil, "no other programs inside the browser" end
 local real_getenv = os.getenv
 os.getenv = function(name)
   if name == "GRAY_NO_UPDATE" then return "1" end -- the browser copy is always current
+  if name == "GRAY_BROWSER" then return "1" end   -- lessons explain browser buttons
   local ok, value = pcall(real_getenv, name)
   if ok then return value end
   return nil
