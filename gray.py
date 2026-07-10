@@ -287,12 +287,12 @@ SECTIONS = [
                     "\n"
                     "print can say several things — separate them with a comma:\n"
                     "\n"
-                    '    print("Hello,", name)\n'
+                    '    print("Hello", name)\n'
                     "\n"
                     "Try it!"
                 ),
                 "task": True,
-                "hint": 'Type:  print("Hello,", name)  — the box name has NO quotes!',
+                "hint": 'Type:  print("Hello", name)  — the box name has NO quotes!',
                 "must_use": ["name"],
                 "needs_print": True,
                 "output_has_var": "name",
@@ -531,8 +531,6 @@ SECTIONS = [
         "lessons": [
             {
                 "say": (
-                    "Last section — and it's the computer's FAVORITE trick. 🔁\n"
-                    "\n"
                     "Would YOU like to say 'Hip hip hooray!' a hundred times?\n"
                     "No? Well, the computer would LOVE to.\n"
                     "\n"
@@ -770,10 +768,10 @@ SECTIONS = [
                 "say": (
                     "Now greet yourself like an old friend:\n"
                     "\n"
-                    '    print("Hello,", name)'
+                    '    print("Hello", name)'
                 ),
                 "task": True,
-                "hint": 'Type:  print("Hello,", name)',
+                "hint": 'Type:  print("Hello", name)',
                 "must_use": ["name"],
                 "needs_print": True,
                 "output_has_var": "name",
@@ -942,7 +940,7 @@ SECTIONS = [
                     "  ✅ the loop must CHANGE something, or it never ends\n"
                     "  ✅ Ctrl + C rescues a stuck computer\n"
                     "\n"
-                    "One section left — the greatest superpower of all!"
+                    "Next, the greatest superpower of all!"
                 ),
             },
         ],
@@ -952,7 +950,7 @@ SECTIONS = [
         "lessons": [
             {
                 "say": (
-                    "The FINAL superpower: teaching the computer NEW WORDS. 🧙\n"
+                    "The next superpower: teaching the computer NEW WORDS. 🧙\n"
                     "\n"
                     "The computer knows  print. It knows  input.\n"
                     "But it doesn't know  cheer  — until YOU teach it!\n"
@@ -1008,12 +1006,12 @@ SECTIONS = [
                     "Functions can take an INGREDIENT — you hand them\n"
                     "something to work with, inside the parentheses:\n"
                     "\n"
-                    '    def greet(name): print("Hello,", name)\n'
+                    '    def greet(name): print("Hello", name)\n'
                     "\n"
                     "Teach your computer to greet!"
                 ),
                 "task": True,
-                "hint": 'Type:  def greet(name): print("Hello,", name)',
+                "hint": 'Type:  def greet(name): print("Hello", name)',
                 "must_use": ["def", "greet", "name"],
                 "defines": {"greet": "function"},
             },
@@ -1029,7 +1027,7 @@ SECTIONS = [
                 "hint": 'Type:  greet("Ada")  — any name you like, in quotes',
                 "must_use": ["greet("],
                 "line_count": 1,
-                "needs_code": {"greet": 'def greet(name): print("Hello,", name)'},
+                "needs_code": {"greet": 'def greet(name): print("Hello", name)'},
             },
             {
                 "say": (
@@ -1486,10 +1484,10 @@ SECTIONS = [
                 "say": (
                     "And greet them properly, with glue:\n"
                     "\n"
-                    '    print("Hello, " + name + "!")'
+                    '    print("Hello " + name + "!")'
                 ),
                 "task": True,
-                "hint": 'Type:  print("Hello, " + name + "!")',
+                "hint": 'Type:  print("Hello " + name + "!")',
                 "must_use": ["name", "+"],
                 "needs_print": True,
                 "output_has_var": "name",
