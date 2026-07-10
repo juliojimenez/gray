@@ -1356,7 +1356,7 @@ local SECTIONS = {
               "text editor. Change the words. Add more lines.\n" ..
               "Run it again with\n" ..
               "\n" ..
-              "         python my_first_program.py\n" ..
+              "         lua my_first_program.lua\n" ..
               "\n" ..
               "That is programming.",
       },
