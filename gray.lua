@@ -9,7 +9,7 @@
 
 local PROGRESS_FILE = (arg[0]:match("(.*[/\\])") or "") .. ".gray-progress-lua.txt"
 
-local GRAY_VERSION = 3 -- bumped on every release; the update check compares this
+local GRAY_VERSION = 4 -- bumped on every release; the update check compares this
 local UPDATE_URL = "https://gray.academy/gray.lua"
 
 -- The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so
@@ -1354,7 +1354,11 @@ local SECTIONS = {
               "And here's the best part: the  ⬇  button next to it\n" ..
               "downloads your program as a real file. Open it in any\n" ..
               "text editor. Change the words. Add more lines.\n" ..
-              "Run it again. THAT is programming.",
+              "Run it again with\n" ..
+              "\n" ..
+              "         python my_first_program.py\n" ..
+              "\n" ..
+              "That is programming.",
       },
       {
         say = "One more secret before you graduate. 🤫\n" ..
