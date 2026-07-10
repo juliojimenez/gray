@@ -51,6 +51,7 @@
     border: 1px solid var(--border);
     color: var(--ink-soft);
   }
+  .lang-logo { height: 1.1em; width: auto; vertical-align: -.18em; }
   #status {
     font-size: .82rem;
     color: var(--ink-soft);
@@ -168,8 +169,8 @@
     <h1>🐘 Pick your language!</h1>
     <p>Same adventure, two languages. You can switch anytime — each keeps its own progress.</p>
     <div class="choices">
-      <a class="big-btn py" href="play.html?lang=python">🐍 Python</a>
-      <a class="big-btn lua" href="play.html?lang=lua">🌙 Lua</a>
+      <a class="big-btn py" href="play.html?lang=python"><img src="python-logo.png" class="lang-logo" alt=""> Python</a>
+      <a class="big-btn lua" href="play.html?lang=lua"><img src="lua-logo.png" class="lang-logo" alt=""> Lua</a>
     </div>
   </div>
 </div>
@@ -215,7 +216,9 @@
   const PROGRAM_NAME = lang === "python" ? "my_first_program.py" : "my_first_program.lua";
   const STORE_KEY = "gray-play-" + lang;
 
-  document.getElementById("lang-chip").textContent = lang === "python" ? "🐍 Python" : "🌙 Lua";
+  document.getElementById("lang-chip").innerHTML = lang === "python"
+    ? '<img src="python-logo.png" class="lang-logo" alt=""> Python'
+    : '<img src="lua-logo.png" class="lang-logo" alt=""> Lua';
   document.title = "Play Gray — " + (lang === "python" ? "Python" : "Lua");
 
   // ---------------- terminal ----------------
