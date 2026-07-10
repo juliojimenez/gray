@@ -9,6 +9,9 @@
 
 local PROGRESS_FILE = (arg[0]:match("(.*[/\\])") or "") .. ".gray-progress-lua.txt"
 
+local GRAY_VERSION = 2 -- bumped on every release; the update check compares this
+local UPDATE_URL = "https://gray.academy/gray.lua"
+
 ---------------------------------------------------------------------------
 -- Pretty terminal output
 ---------------------------------------------------------------------------
@@ -1679,6 +1682,63 @@ local function save_progress(section, lesson)
 end
 
 ---------------------------------------------------------------------------
+-- Updates
+---------------------------------------------------------------------------
+
+local function fetch_latest()
+  -- curl ships with macOS, Linux, and Windows 10+
+  local null = package.config:sub(1, 1) == "\\" and "nul" or "/dev/null"
+  local fh = io.popen('curl -fsS -m 3 "' .. UPDATE_URL .. '" 2>' .. null)
+  if not fh then return nil end
+  local body = fh:read("*a")
+  local ok = fh:close()
+  if not ok or not body or body == "" then return nil end
+  return body
+end
+
+-- Swap in the newest Gray from gray.academy, in place.
+-- This runs at startup, before any lesson state exists, so on update we
+-- can simply run the new file — the student never has to do a thing.
+-- Set GRAY_NO_UPDATE=1 to skip the check entirely.
+local function check_for_updates()
+  if GRAY_UPDATED or os.getenv("GRAY_NO_UPDATE") then return end
+  say(dim("  📡 Checking gray.academy for new adventures..."))
+  local fresh = fetch_latest()
+  if not fresh then
+    say(dim("  🌥  No internet right now — that's totally fine!\n" ..
+            "      Gray works great offline. On with the adventure!"))
+    return
+  end
+  local remote_version = tonumber(fresh:match("GRAY_VERSION%s*=%s*(%d+)"))
+  if not remote_version or remote_version <= GRAY_VERSION
+      or fresh:sub(1, 18) ~= "#!/usr/bin/env lua" then
+    say(dim("  ✅ Gray is up to date!"))
+    return
+  end
+  local me, tmp_path, old_path = arg[0], arg[0] .. ".new", arg[0] .. ".old"
+  local out = io.open(tmp_path, "w")
+  if out then
+    out:write(fresh)
+    out:close()
+  end
+  os.remove(old_path)
+  local swapped = out and os.rename(me, old_path) and os.rename(tmp_path, me)
+  if not swapped then
+    os.rename(old_path, me) -- put things back if the swap half-happened
+    os.remove(tmp_path)
+    say(yellow("  ✨ A newer Gray is out at gray.academy, but I couldn't\n" ..
+               "     update this copy. Re-download me when you get a chance!"))
+    return
+  end
+  os.remove(old_path)
+  say(green("  ✨ Gray just learned some new tricks — updating myself..."))
+  GRAY_UPDATED = true
+  local chunk = loadfile(me)
+  if chunk then chunk() end
+  os.exit(0)
+end
+
+---------------------------------------------------------------------------
 -- Menu and main loop
 ---------------------------------------------------------------------------
 
@@ -1749,6 +1809,7 @@ local function run_section(section_index, start_lesson)
 end
 
 local function main()
+  check_for_updates()
   local section, lesson = load_progress()
   if section > #SECTIONS or not SECTIONS[section] or SECTIONS[section].coming_soon then
     section, lesson = 1, 1

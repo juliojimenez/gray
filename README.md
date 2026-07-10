@@ -29,6 +29,17 @@ try again. At any prompt the student can type:
 - `quit` — stop; progress is saved (`.gray-progress-*` files next to
   the script), so the course resumes where they left off
 
+## Auto-update
+
+On startup Gray checks `https://gray.academy/gray.py` (or `.lua`) for a
+newer release, compares the `GRAY_VERSION` constant, and if the remote
+is newer swaps its own file in place and relaunches — seamless for the
+student, before any lesson state exists. Offline? It says so nicely and
+carries on. Set `GRAY_NO_UPDATE=1` to skip the check (useful while
+developing — a locally bumped `GRAY_VERSION` also protects your copy,
+since Gray never downgrades). Bump `GRAY_VERSION` in both files when
+publishing a release.
+
 ## Sections
 
 1. **Introduction** — the computer as a calculator (`+ - *`), printing
