@@ -9,10 +9,14 @@ Progress is saved in .gray-progress-python.json so you can stop anytime.
 
 import json
 import os
+import re
 import sys
 
 PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              ".gray-progress-python.json")
+
+GRAY_VERSION = 2  # bumped on every release; the update check compares this
+UPDATE_URL = "https://gray.academy/gray.py"
 
 # ---------------------------------------------------------------------------
 # Pretty terminal output
@@ -1816,6 +1820,51 @@ def save_progress(section, lesson):
         pass
 
 # ---------------------------------------------------------------------------
+# Updates
+# ---------------------------------------------------------------------------
+
+def fetch_latest():
+    import urllib.request
+    with urllib.request.urlopen(UPDATE_URL, timeout=3) as resp:
+        return resp.read().decode("utf-8")
+
+
+def check_for_updates():
+    """Swap in the newest Gray from gray.academy, in place.
+
+    This runs at startup, before any lesson state exists, so on update
+    we can simply relaunch ourselves — the student never has to do a
+    thing. Set GRAY_NO_UPDATE=1 to skip the check entirely.
+    """
+    if os.environ.get("GRAY_NO_UPDATE") or os.environ.get("GRAY_UPDATED"):
+        return
+    say(dim("  📡 Checking gray.academy for new adventures..."))
+    try:
+        fresh = fetch_latest()
+    except Exception:
+        say(dim("  🌥  No internet right now — that's totally fine!\n"
+                "      Gray works great offline. On with the adventure!"))
+        return
+    found = re.search(r"^GRAY_VERSION\s*=\s*(\d+)", fresh, re.MULTILINE)
+    if (not found or int(found.group(1)) <= GRAY_VERSION
+            or not fresh.startswith("#!/usr/bin/env python3")):
+        say(dim("  ✅ Gray is up to date!"))
+        return
+    me = os.path.abspath(__file__)
+    try:
+        with open(me + ".new", "w", encoding="utf-8") as fh:
+            fh.write(fresh)
+        os.replace(me + ".new", me)
+    except OSError:
+        say(yellow("  ✨ A newer Gray is out at gray.academy, but I couldn't\n"
+                   "     update this copy. Re-download me when you get a chance!"))
+        return
+    say(green("  ✨ Gray just learned some new tricks — updating myself..."))
+    sys.stdout.flush()  # execv replaces the process without flushing
+    os.environ["GRAY_UPDATED"] = "1"
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+# ---------------------------------------------------------------------------
 # Menu and main loop
 # ---------------------------------------------------------------------------
 
@@ -1878,6 +1927,7 @@ def run_section(section_index, start_lesson):
 
 
 def main():
+    check_for_updates()
     section, lesson = load_progress()
     if section >= len(SECTIONS) or SECTIONS[section].get("coming_soon"):
         section, lesson = 0, 0
