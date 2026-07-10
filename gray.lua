@@ -258,11 +258,11 @@ local SECTIONS = {
               "\n" ..
               "In Lua you glue words and boxes together with two dots:  ..\n" ..
               "\n" ..
-              '    print("Hello, " .. name)\n' ..
+              '    print("Hello " .. name)\n' ..
               "\n" ..
               "Try it!",
         task = true,
-        hint = 'Type:  print("Hello, " .. name)  — the box name has NO quotes!',
+        hint = 'Type:  print("Hello " .. name)  — the box name has NO quotes!',
         must_use = { "name" },
         needs_print = true,
         output_has_var = "name",
@@ -470,9 +470,7 @@ local SECTIONS = {
     title = "Loops — do it again!",
     lessons = {
       {
-        say = "Last section — and it's the computer's FAVORITE trick. 🔁\n" ..
-              "\n" ..
-              "Would YOU like to say 'Hip hip hooray!' a hundred times?\n" ..
+        say = "Would YOU like to say 'Hip hip hooray!' a hundred times?\n" ..
               "No? Well, the computer would LOVE to.\n" ..
               "\n" ..
               "Doing something again and again is called a LOOP,\n" ..
@@ -664,9 +662,9 @@ local SECTIONS = {
       {
         say = "Now greet yourself like an old friend:\n" ..
               "\n" ..
-              '    print("Hello, " .. name)',
+              '    print("Hello " .. name)',
         task = true,
-        hint = 'Type:  print("Hello, " .. name)',
+        hint = 'Type:  print("Hello " .. name)',
         must_use = { "name" },
         needs_print = true,
         output_has_var = "name",
@@ -814,7 +812,7 @@ local SECTIONS = {
               "  ✅ the loop must CHANGE something, or it never ends\n" ..
               "  ✅ Gray the lifeguard stops runaway loops\n" ..
               "\n" ..
-              "One section left — the greatest superpower of all!",
+              "Next, the greatest superpower of all!",
       },
     },
   },
@@ -822,7 +820,7 @@ local SECTIONS = {
     title = "Functions — teach it new words",
     lessons = {
       {
-        say = "The FINAL superpower: teaching the computer NEW WORDS. 🧙\n" ..
+        say = "The next superpower: teaching the computer NEW WORDS. 🧙\n" ..
               "\n" ..
               "The computer knows  print. It knows  io.read.\n" ..
               "But it doesn't know  cheer  — until YOU teach it!\n" ..
@@ -870,11 +868,11 @@ local SECTIONS = {
         say = "Functions can take an INGREDIENT — you hand them\n" ..
               "something to work with, inside the parentheses:\n" ..
               "\n" ..
-              '    function greet(name) print("Hello, " .. name) end\n' ..
+              '    function greet(name) print("Hello " .. name) end\n' ..
               "\n" ..
               "Teach your computer to greet!",
         task = true,
-        hint = 'Type:  function greet(name) print("Hello, " .. name) end',
+        hint = 'Type:  function greet(name) print("Hello " .. name) end',
         must_use = { "function", "greet", "name" },
         defines = { greet = "function" },
       },
@@ -888,7 +886,7 @@ local SECTIONS = {
         hint = 'Type:  greet("Ada")  — any name you like, in quotes',
         must_use = { "greet(" },
         line_count = 1,
-        needs_code = { greet = 'function greet(name) print("Hello, " .. name) end' },
+        needs_code = { greet = 'function greet(name) print("Hello " .. name) end' },
       },
       {
         say = "One more trick: a function can hand an answer BACK,\n" ..
@@ -1276,9 +1274,9 @@ local SECTIONS = {
       {
         say = "And greet them properly, with glue:\n" ..
               "\n" ..
-              '    print("Hello, " .. name .. "!")',
+              '    print("Hello " .. name .. "!")',
         task = true,
-        hint = 'Type:  print("Hello, " .. name .. "!")',
+        hint = 'Type:  print("Hello " .. name .. "!")',
         must_use = { "name", ".." },
         needs_print = true,
         output_has_var = "name",
