@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Gray in your browser</title>
+<meta name="description" content="Do the Gray programming course for kids right in your browser — real Python or Lua in a terminal, no installation.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐘</text></svg>">
+<script src="coi-serviceworker.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #16181d;
+    --bg-card: #1f232b;
+    --ink: #e8e6e1;
+    --ink-soft: #a8adb8;
+    --accent: #8f82f5;
+    --accent-2: #26d0a8;
+    --term-bg: #0d0f13;
+    --border: #313743;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  header .brand {
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--ink);
+    font-size: 1.05rem;
+  }
+  header .lang-chip {
+    font-size: .8rem;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--ink-soft);
+  }
+  #status {
+    font-size: .82rem;
+    color: var(--ink-soft);
+    margin-right: auto;
+  }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tbtn {
+    font-size: .82rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--ink);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .tbtn:hover { border-color: var(--accent); }
+  .tbtn[hidden] { display: none; }
+  #terminal-wrap {
+    flex: 1;
+    min-height: 0;
+    padding: 10px;
+  }
+  #terminal {
+    height: 100%;
+    background: var(--term-bg);
+    border-radius: 12px;
+    padding: 10px 4px 10px 12px;
+  }
+  .xterm .xterm-viewport { background: transparent !important; border-radius: 12px; }
+  footer {
+    padding: 8px 16px 12px;
+    font-size: .78rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  footer code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: var(--bg-card);
+    padding: 1px 6px;
+    border-radius: 5px;
+  }
+  /* overlays */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 15, 19, .82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 10;
+  }
+  .overlay[hidden] { display: none; }
+  .panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 460px;
+    text-align: center;
+  }
+  .panel h1 { font-size: 1.4rem; margin-bottom: 8px; }
+  .panel p { color: var(--ink-soft); font-size: .95rem; margin-bottom: 20px; }
+  .panel .choices { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .big-btn {
+    display: inline-block;
+    padding: 14px 26px;
+    border-radius: 999px;
+    border: none;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .big-btn.py { background: var(--accent); }
+  .big-btn.lua { background: var(--accent-2); }
+  .panel a.plain { color: var(--accent); font-size: .9rem; }
+  .linkish {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font-size: .85rem;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="index.html">🐘 Gray</a>
+  <span class="lang-chip" id="lang-chip">choosing…</span>
+  <span id="status">warming up…</span>
+  <div class="toolbar">
+    <button class="tbtn" id="btn-rescue" hidden title="Stop code that is stuck in a loop">🛟 Rescue</button>
+    <a class="tbtn" id="btn-program" hidden download>⬇ My program</a>
+    <button class="tbtn" id="btn-restart" title="Restart Gray — progress is kept">🔁 Restart</button>
+    <button class="tbtn" id="btn-reset" title="Erase saved progress and start fresh">🗑 Start over</button>
+    <a class="tbtn" id="btn-switch" href="play.html">🔀 Switch language</a>
+  </div>
+</header>
+
+<div id="terminal-wrap"><div id="terminal"></div></div>
+
+<footer>
+  Type <code>hint</code> if you're stuck · <code>menu</code> to pick a section · <code>quit</code> to stop —
+  progress is saved in this browser.
+</footer>
+
+<div class="overlay" id="picker" hidden>
+  <div class="panel">
+    <h1>🐘 Pick your language!</h1>
+    <p>Same adventure, two languages. You can switch anytime — each keeps its own progress.</p>
+    <div class="choices">
+      <a class="big-btn py" href="play.html?lang=python">🐍 Python</a>
+      <a class="big-btn lua" href="play.html?lang=lua">🌙 Lua</a>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="unsupported" hidden>
+  <div class="panel">
+    <h1>🙈 This browser can't run Gray</h1>
+    <p>Playing in the browser needs a recent Chrome, Firefox, Safari or Edge.
+       You can also download the course and run it on your computer — it's one small file.</p>
+    <div class="choices"><a class="big-btn py" href="index.html#get-started">Get the download</a></div>
+  </div>
+</div>
+
+<div class="overlay" id="exited" hidden>
+  <div class="panel">
+    <h1>👋 See you soon!</h1>
+    <p>Your progress is saved in this browser — Gray will remember exactly where you left off.</p>
+    <div class="choices"><button class="big-btn py" id="btn-again">▶ Keep playing</button></div>
+    <p style="margin: 14px 0 0"><button class="linkish" id="btn-peek">just looking at the terminal, thanks</button></p>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const params = new URLSearchParams(location.search);
+  const lang = params.get("lang");
+
+  function setStatus(text) {
+    document.getElementById("status").textContent = text;
+  }
+
+  if (lang !== "python" && lang !== "lua") {
+    document.getElementById("picker").hidden = false;
+    document.getElementById("lang-chip").textContent = "no language yet";
+    setStatus("");
+    return;
+  }
+
+  const SOURCE_FILE = lang === "python" ? "gray.py" : "gray.lua";
+  const WORKER_FILE = lang === "python" ? "play-python-worker.js" : "play-lua-worker.js";
+  const PROGRAM_NAME = lang === "python" ? "my_first_program.py" : "my_first_program.lua";
+  const STORE_KEY = "gray-play-" + lang;
+
+  document.getElementById("lang-chip").textContent = lang === "python" ? "🐍 Python" : "🌙 Lua";
+  document.title = "Play Gray — " + (lang === "python" ? "Python" : "Lua");
+
+  // ---------------- terminal ----------------
+  const term = new Terminal({
+    convertEol: true,
+    cursorBlink: true,
+    fontSize: window.innerWidth < 480 ? 12 : 15, // ~50 columns on a phone
+
+    fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace',
+    theme: {
+      background: "#0d0f13",
+      foreground: "#d8dee9",
+      cursor: "#8f82f5",
+      selectionBackground: "#3a4150",
+    },
+  });
+  const fit = new FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.open(document.getElementById("terminal"));
+  fit.fit();
+  addEventListener("resize", () => fit.fit());
+  if (window.visualViewport) {
+    // fires when a phone's software keyboard opens — window resize doesn't
+    window.visualViewport.addEventListener("resize", () => fit.fit());
+  }
+  term.focus();
+
+  const dim = (text) => "\x1b[2m" + text + "\x1b[0m";
+
+  // ---------------- state ----------------
+  let worker = null;
+  let state = "loading"; // loading | running | waiting | done
+  let ctrl = null;
+  let dataBuf = null;
+  let interruptView = null;
+  let sourceText = null;
+  let generation = 0; // bumped on every (re)boot so stale worker messages are ignored
+
+  function setStatus(text) {
+    document.getElementById("status").textContent = text;
+  }
+
+  function setState(next) {
+    state = next;
+    const labels = {
+      loading: "⏳ getting ready…",
+      running: "🤔 Gray is thinking…",
+      waiting: "🟢 your turn — type in the terminal!",
+      done: "💤 paused",
+    };
+    setStatus(labels[next] || "");
+    document.getElementById("btn-rescue").hidden = !(lang === "python" && next === "running");
+  }
+
+  let programUrl = null;
+
+  // ---------------- persistence ----------------
+  function loadSaved() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
+      return {
+        progress: typeof saved.progress === "string" ? saved.progress : undefined,
+        program: typeof saved.program === "string" ? saved.program : undefined,
+      };
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function persist(files) {
+    if (!files) return;
+    const saved = loadSaved();
+    if (files.progress != null) saved.progress = files.progress;
+    if (files.program != null) saved.program = files.program;
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+    } catch (err) { /* private mode — progress just won't stick */ }
+    updateProgramButton(saved.program);
+  }
+
+  function updateProgramButton(program) {
+    const btn = document.getElementById("btn-program");
+    if (programUrl) { URL.revokeObjectURL(programUrl); programUrl = null; }
+    if (!program) { btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.download = PROGRAM_NAME;
+    programUrl = URL.createObjectURL(new Blob([program], { type: "text/plain" }));
+    btn.href = programUrl;
+  }
+
+  // ---------------- worker ----------------
+  function boot() {
+    setState("loading");
+    document.getElementById("exited").hidden = true;
+    lineBuf = "";
+    inEscape = false;
+    pendingLines.length = 0;
+    const gen = ++generation;
+
+    const stdinSab = new SharedArrayBuffer(8 + 32768);
+    ctrl = new Int32Array(stdinSab, 0, 2);
+    dataBuf = new Uint8Array(stdinSab, 8);
+    let interruptSab = null;
+    if (lang === "python") {
+      interruptSab = new SharedArrayBuffer(4);
+      interruptView = new Int32Array(interruptSab);
+    }
+
+    worker = new Worker(WORKER_FILE, { type: "module" });
+    worker.onmessage = (event) => {
+      if (gen !== generation) return; // message from a replaced session
+      const msg = event.data;
+      if (msg.type === "status") {
+        term.writeln(dim("  " + msg.text));
+      } else if (msg.type === "out") {
+        term.write(msg.text);
+      } else if (msg.type === "stdin") {
+        persist(msg.files);
+        if (pendingLines.length > 0) {
+          const line = pendingLines.shift();
+          term.write(line + "\r\n");
+          submit(line);
+        } else {
+          if (lineBuf) term.write(lineBuf); // echo type-ahead typed while Gray was busy
+          setState("waiting");
+        }
+      } else if (msg.type === "started") {
+        setState("running");
+      } else if (msg.type === "files") {
+        persist(msg.files);
+      } else if (msg.type === "fatal") {
+        term.writeln("\r\n" + dim("  " + msg.text));
+        term.writeln(dim("  Try reloading the page — or grab the download from gray.academy!"));
+        setState("done");
+      } else if (msg.type === "exited") {
+        setState("done");
+        // let the goodbye (or an error) stay readable before the overlay
+        setTimeout(() => {
+          if (gen === generation && state === "done") {
+            document.getElementById("exited").hidden = false;
+          }
+        }, 1500);
+      }
+    };
+    worker.onerror = (err) => {
+      if (gen !== generation) return;
+      term.writeln("\r\n" + dim("  🙈 Something went wrong: " + (err.message || "unknown error")));
+      term.writeln(dim("  Try reloading the page."));
+      setState("done");
+    };
+
+    const saved = loadSaved();
+    updateProgramButton(saved.program);
+    worker.postMessage({
+      type: "boot",
+      source: sourceText,
+      stdinSab,
+      interruptSab,
+      files: { progress: saved.progress || null, program: saved.program || null },
+    });
+  }
+
+  function restart() {
+    if (!sourceText) { location.reload(); return; }
+    if (worker) worker.terminate();
+    term.reset();
+    boot();
+    term.focus();
+  }
+
+  // ---------------- input line discipline ----------------
+  const encoder = new TextEncoder();
+  let lineBuf = "";
+  let inEscape = false;
+  const pendingLines = []; // typed-ahead / pasted lines waiting for the next prompt
+
+  function submit(line) {
+    const bytes = encoder.encode(line).slice(0, dataBuf.length);
+    dataBuf.set(bytes);
+    Atomics.store(ctrl, 1, bytes.length);
+    Atomics.store(ctrl, 0, 1);
+    Atomics.notify(ctrl, 0);
+    setState("running");
+  }
+
+  function rescue() {
+    pendingLines.length = 0;
+    if (lang === "python" && interruptView && (state === "running" || state === "waiting")) {
+      // SIGINT -> KeyboardInterrupt: stuck code gets Gray's friendly
+      // "taking FOREVER" message; at a prompt it quits, progress saved —
+      // exactly like Ctrl+C in a real terminal
+      interruptView[0] = 2;
+    }
+  }
+
+  term.onData((data) => {
+    for (const ch of data) {
+      if (inEscape) {
+        // swallow the rest of an ANSI escape sequence (arrow keys etc.)
+        if (/[a-zA-Z~]/.test(ch)) inEscape = false;
+        continue;
+      }
+      if (ch === "\x1b") { inEscape = true; continue; }
+      if (ch === "\x03") { rescue(); continue; }
+      if (state === "loading" || state === "done") continue;
+      // "live" = this keystroke lands directly at the prompt; otherwise it
+      // queues (multi-line paste, typing while Gray is busy) and is echoed
+      // when its turn comes
+      const live = state === "waiting" && pendingLines.length === 0;
+      if (ch === "\r" || ch === "\n") {
+        if (live) {
+          term.write("\r\n");
+          const line = lineBuf;
+          lineBuf = "";
+          submit(line);
+        } else {
+          pendingLines.push(lineBuf);
+          lineBuf = "";
+        }
+      } else if (ch === "\x7f" || ch === "\b") {
+        if (lineBuf.length > 0) {
+          lineBuf = lineBuf.slice(0, -1);
+          if (live) term.write("\b \b");
+        }
+      } else if (ch >= " " && lineBuf.length < 8000) {
+        lineBuf += ch;
+        if (live) term.write(ch);
+      }
+    }
+  });
+
+  // ---------------- toolbar ----------------
+  // hand focus back to the terminal after every button, so a stray Enter
+  // goes to Gray instead of re-triggering the button
+  const onClick = (id, fn) => document.getElementById(id).addEventListener("click", () => { fn(); term.focus(); });
+  onClick("btn-rescue", rescue);
+  onClick("btn-restart", restart);
+  onClick("btn-again", restart);
+  onClick("btn-peek", () => { document.getElementById("exited").hidden = true; });
+  onClick("btn-reset", () => {
+    if (confirm("Erase all saved progress for this language and start from the very beginning?")) {
+      try { localStorage.removeItem(STORE_KEY); } catch (err) { /* storage blocked */ }
+      updateProgramButton(null);
+      restart();
+    }
+  });
+
+  // hooks for automated testing
+  window.__gray = {
+    send: (line) => { if (state === "waiting") { term.write(line + "\r\n"); submit(line); return true; } return false; },
+    state: () => state,
+    term,
+  };
+
+  // ---------------- go ----------------
+  term.writeln(dim("  🐘 Waking Gray up…"));
+
+  if (!window.crossOriginIsolated) {
+    // The coi service worker reloads the page once to turn isolation on.
+    // If we're still not isolated after a generous wait (slow first
+    // install included), the browser really can't do it.
+    setTimeout(() => {
+      if (!window.crossOriginIsolated) document.getElementById("unsupported").hidden = false;
+    }, 8000);
+    return;
+  }
+
+  fetch(SOURCE_FILE)
+    .then((res) => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    })
+    .then((text) => {
+      sourceText = text;
+      boot();
+    })
+    .catch((err) => {
+      term.writeln(dim("  🙈 Could not fetch the course (" + err.message + "). Try reloading!"));
+      setState("done");
+    });
+})();
+</script>
+
+</body>
+</html>

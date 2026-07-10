@@ -16,6 +16,21 @@ lua gray.lua       # the Lua course
 
 No dependencies — each course is a single file.
 
+Or play without installing anything at
+[gray.academy/play.html](https://gray.academy/play.html): the same
+`gray.py` / `gray.lua` run unmodified in the browser (Pyodide for
+Python, Wasmoon for Lua) inside a Web Worker, wired to an xterm.js
+terminal. Blocking `input()` / `io.read()` works via SharedArrayBuffer +
+Atomics — [coi-serviceworker.js](coi-serviceworker.js) adds the
+cross-origin-isolation headers GitHub Pages can't send. (Heads-up: once
+a visitor has opened the play page, that service worker applies COOP/COEP
+to *every* gray.academy page — so any future cross-origin embeds on the
+site must send CORP headers or be `crossorigin`-tagged.) Progress and the
+graduation program are saved to the browser's localStorage (the page
+also offers `my_first_program` as a download). See
+[play.html](play.html), [play-python-worker.js](play-python-worker.js),
+[play-lua-worker.js](play-lua-worker.js).
+
 ## How it works
 
 Gray explains a concept, then the student types **real code** at the
