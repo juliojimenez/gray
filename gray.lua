@@ -17,6 +17,91 @@ local UPDATE_URL = "https://gray.academy/gray.lua"
 local IN_BROWSER = os.getenv("GRAY_BROWSER") ~= nil
 
 ---------------------------------------------------------------------------
+-- Line editing
+--
+-- Plain io.read() can't handle arrow keys: pressing one splats escape
+-- garbage like ^[[D into the answer. On a real POSIX terminal (detected
+-- with stty) we read raw keystrokes ourselves so left/right move the
+-- cursor and up/down do nothing. Anywhere else — pipes, Windows (whose
+-- console edits lines natively), the browser — plain reads are kept.
+---------------------------------------------------------------------------
+
+local TTY_STATE = nil
+do
+  local ok, p = pcall(io.popen, "stty -g 2>/dev/null")
+  if ok and p then
+    local saved = p:read("*l")
+    p:close()
+    if saved and saved ~= "" then TTY_STATE = saved end
+  end
+end
+
+if TTY_STATE then
+  local raw_read = io.read
+
+  local function read_line_edited()
+    os.execute("stty raw -echo 2>/dev/null")
+    local chars, pos = {}, 1 -- pos = where the next character lands
+    local result
+    while true do
+      local c = raw_read(1)
+      if c == nil then result = nil break end
+      local b = c:byte()
+      if c == "\r" or c == "\n" then
+        result = table.concat(chars)
+        break
+      elseif b == 3 or b == 4 then -- Ctrl+C / Ctrl+D: like closing input
+        result = nil
+        break
+      elseif b == 27 then -- escape sequence: arrows, function keys, ...
+        local c2 = raw_read(1)
+        if c2 == "[" or c2 == "O" then
+          local fin = raw_read(1)
+          while fin and fin:match("[0-9;]") do fin = raw_read(1) end
+          if fin == "D" and pos > 1 then -- left
+            pos = pos - 1
+            io.write("\27[D")
+          elseif fin == "C" and pos <= #chars then -- right
+            pos = pos + 1
+            io.write("\27[C")
+          end
+          -- up (A), down (B) and everything else: silently ignored
+        end
+      elseif b == 127 or b == 8 then -- backspace
+        if pos > 1 then
+          table.remove(chars, pos - 1)
+          pos = pos - 1
+          local restn = #chars - pos + 1
+          io.write("\27[D", table.concat(chars, "", pos), " ",
+                   string.rep("\27[D", restn + 1))
+        end
+      elseif b >= 32 then
+        local ch = c
+        if b >= 0xC0 then -- keep multi-byte UTF-8 characters together
+          local extra = (b >= 0xF0 and 3) or (b >= 0xE0 and 2) or 1
+          for _ = 1, extra do ch = ch .. (raw_read(1) or "") end
+        end
+        table.insert(chars, pos, ch)
+        pos = pos + 1
+        local restn = #chars - pos + 1
+        io.write(ch, table.concat(chars, "", pos), string.rep("\27[D", restn))
+      end
+    end
+    os.execute("stty " .. TTY_STATE .. " 2>/dev/null")
+    io.write("\r\n") -- raw mode needs the explicit carriage return
+    io.flush()
+    return result
+  end
+
+  io.read = function(fmt, ...)
+    if fmt == nil or fmt == "l" or fmt == "*l" then
+      return read_line_edited()
+    end
+    return raw_read(fmt, ...)
+  end
+end
+
+---------------------------------------------------------------------------
 -- Pretty terminal output
 ---------------------------------------------------------------------------
 

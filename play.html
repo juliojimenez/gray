@@ -322,7 +322,8 @@
     setState("loading");
     document.getElementById("exited").hidden = true;
     lineBuf = "";
-    inEscape = false;
+    cursor = 0;
+    escBuf = null;
     pendingLines.length = 0;
     const gen = ++generation;
 
@@ -351,6 +352,7 @@
           submit(line);
         } else {
           if (lineBuf) term.write(lineBuf); // echo type-ahead typed while Gray was busy
+          cursor = lineBuf.length;
           setState("waiting");
         }
       } else if (msg.type === "started") {
@@ -431,7 +433,8 @@
   // ---------------- input line discipline ----------------
   const encoder = new TextEncoder();
   let lineBuf = "";
-  let inEscape = false;
+  let cursor = 0;      // insertion point within lineBuf
+  let escBuf = null;   // non-null while collecting an ANSI escape sequence
   const pendingLines = []; // typed-ahead / pasted lines waiting for the next prompt
 
   function submit(line) {
@@ -453,14 +456,26 @@
     }
   }
 
-  term.onData((data) => {
+  function onTermData(data) {
     for (const ch of data) {
-      if (inEscape) {
-        // swallow the rest of an ANSI escape sequence (arrow keys etc.)
-        if (/[a-zA-Z~]/.test(ch)) inEscape = false;
+      if (escBuf !== null) {
+        escBuf += ch;
+        if (/[a-zA-Z~]/.test(ch)) {
+          // sequence complete: plain left/right move the cursor,
+          // everything else (up, down, function keys) is ignored
+          const live = state === "waiting" && pendingLines.length === 0;
+          if (live && (escBuf === "[D" || escBuf === "OD") && cursor > 0) {
+            cursor--;
+            term.write("\x1b[D");
+          } else if (live && (escBuf === "[C" || escBuf === "OC") && cursor < lineBuf.length) {
+            cursor++;
+            term.write("\x1b[C");
+          }
+          escBuf = null;
+        }
         continue;
       }
-      if (ch === "\x1b") { inEscape = true; continue; }
+      if (ch === "\x1b") { escBuf = ""; continue; }
       if (ch === "\x03") { rescue(); continue; }
       if (state === "loading" || state === "done") continue;
       // "live" = this keystroke lands directly at the prompt; otherwise it
@@ -468,26 +483,36 @@
       // when its turn comes
       const live = state === "waiting" && pendingLines.length === 0;
       if (ch === "\r" || ch === "\n") {
+        const line = lineBuf;
+        lineBuf = "";
+        cursor = 0;
         if (live) {
           term.write("\r\n");
-          const line = lineBuf;
-          lineBuf = "";
           submit(line);
         } else {
-          pendingLines.push(lineBuf);
-          lineBuf = "";
+          pendingLines.push(line);
         }
       } else if (ch === "\x7f" || ch === "\b") {
-        if (lineBuf.length > 0) {
-          lineBuf = lineBuf.slice(0, -1);
-          if (live) term.write("\b \b");
+        if (cursor > 0) {
+          lineBuf = lineBuf.slice(0, cursor - 1) + lineBuf.slice(cursor);
+          cursor--;
+          if (live) {
+            const rest = lineBuf.slice(cursor);
+            term.write("\b" + rest + " \x1b[" + (rest.length + 1) + "D");
+          }
         }
       } else if (ch >= " " && lineBuf.length < 8000) {
-        lineBuf += ch;
-        if (live) term.write(ch);
+        lineBuf = lineBuf.slice(0, cursor) + ch + lineBuf.slice(cursor);
+        cursor++;
+        if (live) {
+          const rest = lineBuf.slice(cursor);
+          term.write(ch + (rest ? rest + "\x1b[" + rest.length + "D" : ""));
+        }
       }
     }
-  });
+  }
+
+  term.onData(onTermData);
 
   // ---------------- toolbar ----------------
   // hand focus back to the terminal after every button, so a stray Enter
@@ -510,6 +535,7 @@
   // hooks for automated testing
   window.__gray = {
     send: (line) => { if (state === "waiting") { term.write(line + "\r\n"); submit(line); return true; } return false; },
+    feed: onTermData, // raw keystrokes, exactly as xterm would deliver them
     state: () => state,
     term,
   };
