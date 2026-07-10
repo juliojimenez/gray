@@ -25,7 +25,7 @@ except ImportError:
 PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              ".gray-progress-python.json")
 
-GRAY_VERSION = 4  # bumped on every release; the update check compares this
+GRAY_VERSION = 5  # bumped on every release; the update check compares this
 UPDATE_URL = "https://gray.academy/gray.py"
 
 # The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so

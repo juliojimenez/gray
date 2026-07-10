@@ -9,7 +9,7 @@
 
 local PROGRESS_FILE = (arg[0]:match("(.*[/\\])") or "") .. ".gray-progress-lua.txt"
 
-local GRAY_VERSION = 4 -- bumped on every release; the update check compares this
+local GRAY_VERSION = 5 -- bumped on every release; the update check compares this
 local UPDATE_URL = "https://gray.academy/gray.lua"
 
 -- The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so
