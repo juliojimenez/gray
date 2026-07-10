@@ -150,7 +150,8 @@
   <span id="status">warming up…</span>
   <div class="toolbar">
     <button class="tbtn" id="btn-rescue" hidden title="Stop code that is stuck in a loop">🛟 Rescue</button>
-    <a class="tbtn" id="btn-program" hidden download>⬇ My program</a>
+    <button class="tbtn" id="btn-run" hidden title="Run my_first_program right here in the terminal">▶ Run my program</button>
+    <a class="tbtn" id="btn-program" hidden title="Download my_first_program to keep">⬇</a>
     <button class="tbtn" id="btn-restart" title="Restart Gray — progress is kept">🔁 Restart</button>
     <button class="tbtn" id="btn-reset" title="Erase saved progress and start fresh">🗑 Start over</button>
     <a class="tbtn" id="btn-switch" href="play.html">🔀 Switch language</a>
@@ -186,9 +187,12 @@
 
 <div class="overlay" id="exited" hidden>
   <div class="panel">
-    <h1>👋 See you soon!</h1>
-    <p>Your progress is saved in this browser — Gray will remember exactly where you left off.</p>
-    <div class="choices"><button class="big-btn py" id="btn-again">▶ Keep playing</button></div>
+    <h1 id="exited-title">👋 See you soon!</h1>
+    <p id="exited-text">Your progress is saved in this browser — Gray will remember exactly where you left off.</p>
+    <div class="choices">
+      <button class="big-btn py" id="btn-again">▶ Keep playing</button>
+      <button class="big-btn lua" id="btn-run-overlay" hidden>▶ Run my program</button>
+    </div>
     <p style="margin: 14px 0 0"><button class="linkish" id="btn-peek">just looking at the terminal, thanks</button></p>
   </div>
 </div>
@@ -257,6 +261,7 @@
   let interruptView = null;
   let sourceText = null;
   let generation = 0; // bumped on every (re)boot so stale worker messages are ignored
+  let mode = "course"; // "course" runs gray.py/.lua — "program" runs my_first_program
 
   function setStatus(text) {
     document.getElementById("status").textContent = text;
@@ -302,6 +307,7 @@
 
   function updateProgramButton(program) {
     const btn = document.getElementById("btn-program");
+    document.getElementById("btn-run").hidden = !program;
     if (programUrl) { URL.revokeObjectURL(programUrl); programUrl = null; }
     if (!program) { btn.hidden = true; return; }
     btn.hidden = false;
@@ -311,7 +317,8 @@
   }
 
   // ---------------- worker ----------------
-  function boot() {
+  function boot(runMode) {
+    mode = runMode || "course";
     setState("loading");
     document.getElementById("exited").hidden = true;
     lineBuf = "";
@@ -358,9 +365,7 @@
         setState("done");
         // let the goodbye (or an error) stay readable before the overlay
         setTimeout(() => {
-          if (gen === generation && state === "done") {
-            document.getElementById("exited").hidden = false;
-          }
+          if (gen === generation && state === "done") showEndOverlay();
         }, 1500);
       }
     };
@@ -375,18 +380,51 @@
     updateProgramButton(saved.program);
     worker.postMessage({
       type: "boot",
-      source: sourceText,
+      source: mode === "program" ? saved.program : sourceText,
       stdinSab,
       interruptSab,
-      files: { progress: saved.progress || null, program: saved.program || null },
+      // the standalone program starts from a clean slate — no course files
+      files: mode === "program" ? {} : { progress: saved.progress || null, program: saved.program || null },
     });
+  }
+
+  function showEndOverlay() {
+    const title = document.getElementById("exited-title");
+    const text = document.getElementById("exited-text");
+    const again = document.getElementById("btn-again");
+    const run = document.getElementById("btn-run-overlay");
+    if (mode === "program") {
+      title.textContent = "🎓 That was YOUR program!";
+      text.textContent = "Written line by line, by you. Run it again, download it to keep " +
+        "(and change it in any text editor!), or head back to Gray.";
+      again.textContent = "🐘 Back to Gray";
+      run.hidden = false;
+      run.textContent = "▶ Run it again";
+    } else {
+      title.textContent = "👋 See you soon!";
+      text.textContent = "Your progress is saved in this browser — Gray will remember exactly where you left off.";
+      again.textContent = "▶ Keep playing";
+      run.hidden = !loadSaved().program;
+      run.textContent = "▶ Run my program";
+    }
+    document.getElementById("exited").hidden = false;
   }
 
   function restart() {
     if (!sourceText) { location.reload(); return; }
     if (worker) worker.terminate();
     term.reset();
-    boot();
+    boot("course");
+    term.focus();
+  }
+
+  function runProgram() {
+    if (!loadSaved().program) return;
+    if (worker) worker.terminate();
+    term.reset();
+    term.writeln(dim("  🚀 Running YOUR program — " + PROGRAM_NAME));
+    term.writeln("");
+    boot("program");
     term.focus();
   }
 
@@ -458,6 +496,8 @@
   onClick("btn-rescue", rescue);
   onClick("btn-restart", restart);
   onClick("btn-again", restart);
+  onClick("btn-run", runProgram);
+  onClick("btn-run-overlay", runProgram);
   onClick("btn-peek", () => { document.getElementById("exited").hidden = true; });
   onClick("btn-reset", () => {
     if (confirm("Erase all saved progress for this language and start from the very beginning?")) {

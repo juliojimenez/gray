@@ -26,8 +26,10 @@ cross-origin-isolation headers GitHub Pages can't send. (Heads-up: once
 a visitor has opened the play page, that service worker applies COOP/COEP
 to *every* gray.academy page — so any future cross-origin embeds on the
 site must send CORP headers or be `crossorigin`-tagged.) Progress and the
-graduation program are saved to the browser's localStorage (the page
-also offers `my_first_program` as a download). See
+graduation program are saved to the browser's localStorage. The
+graduation program is a first-class citizen: a "Run my program" button
+executes `my_first_program` standalone in the same terminal (inputs and
+all), and a download chip lets kids take the file home. See
 [play.html](play.html), [play-python-worker.js](play-python-worker.js),
 [play-lua-worker.js](play-lua-worker.js).
 
