@@ -12,10 +12,20 @@ import os
 import re
 import sys
 
+# With readline loaded, input() gets real line editing: left/right move
+# the cursor instead of printing escape garbage. Windows consoles edit
+# lines natively, so missing readline there is fine.
+READLINE = False
+try:
+    import readline  # noqa: F401
+    READLINE = True
+except ImportError:
+    pass
+
 PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              ".gray-progress-python.json")
 
-GRAY_VERSION = 4  # bumped on every release; the update check compares this
+GRAY_VERSION = 5  # bumped on every release; the update check compares this
 UPDATE_URL = "https://gray.academy/gray.py"
 
 # The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so
@@ -49,6 +59,18 @@ def banner(text):
 
 def cheer(text):
     say(green(f"\n  ⭐ {text}\n"))
+
+def rl_safe(prompt_text):
+    """Mark ANSI color codes as zero-width in input() prompts.
+
+    readline counts prompt characters to keep its cursor math right;
+    without the \\x01..\\x02 guards, arrow keys and history redraws
+    drift by the width of the invisible color codes.
+    """
+    if not (READLINE and sys.stdin.isatty()):
+        return prompt_text
+    return re.sub(r"(\x1b\[[0-9;]*m)", "\x01\\1\x02", prompt_text)
+
 
 def nudge(text):
     say(yellow(f"\n  🤔 {text}\n"))
@@ -1824,7 +1846,7 @@ def do_task(lesson, praise_index):
     """Let the student try until they solve it. Returns 'done', 'menu' or 'quit'."""
     while True:
         try:
-            typed = input(magenta("  you> ")).strip()
+            typed = input(rl_safe(magenta("  you> "))).strip()
         except (EOFError, KeyboardInterrupt):
             return "quit"
 
@@ -1866,7 +1888,7 @@ def do_task(lesson, praise_index):
 
 def wait_for_enter():
     try:
-        input(dim("        (press Enter to continue)"))
+        input(rl_safe(dim("        (press Enter to continue)")))
         return "done"
     except (EOFError, KeyboardInterrupt):
         return "quit"
