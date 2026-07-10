@@ -524,6 +524,7 @@ You just wrote your first Python script! 🎉</div>
 <footer>
   <p>🐘 Gray — made with love for curious kids.</p>
   <p style="margin-top:6px">Run it: <code>python gray.py</code> or <code>lua gray.lua</code></p>
+  <p style="margin-top:6px">Cookie-less, privacy-friendly visit counting by <a href="https://www.goatcounter.com">GoatCounter</a>.</p>
 </footer>
 
 <script>
@@ -540,13 +541,12 @@ You just wrote your first Python script! 🎉</div>
   }
 
   // ---------------- journey counter ----------------
-  // GitHub Pages can't keep state, so this is a steady time-based
-  // estimate: every visitor sees the same, always-growing number.
-  // For true counts, host a tiny endpoint (e.g. a Cloudflare Worker
-  // with KV) that returns {"count": N} and set COUNTER_URL to it —
-  // everything else stays the same.
+  // Real visitor count from GoatCounter's public counter API (enable
+  // "allow adding visitor counts to your website" in its settings).
+  // If the endpoint is unreachable or not enabled, the steady
+  // time-based estimate below fills in so the number never breaks.
   (function () {
-    var COUNTER_URL = null;
+    var COUNTER_URL = 'https://grayacademy.goatcounter.com/counter/TOTAL.json';
     var el = document.getElementById('journey-count');
     var LAUNCH = Date.UTC(2026, 6, 6);  // the day Gray went public
     var BASE = 1187;                    // journeys begun before the counter existed
@@ -591,14 +591,24 @@ You just wrote your first Python script! 🎉</div>
 
     if (COUNTER_URL) {
       fetch(COUNTER_URL)
-        .then(function (r) { return r.json(); })
-        .then(function (d) { start(d.count); })
+        .then(function (r) {
+          if (!r.ok) throw new Error('counter ' + r.status);
+          return r.json();
+        })
+        .then(function (d) {
+          // GoatCounter formats numbers with separators, e.g. "1 234"
+          var n = parseInt(String(d.count_unique || d.count).replace(/[^0-9]/g, ''), 10);
+          if (isNaN(n)) throw new Error('unparseable count');
+          start(n);
+        })
         .catch(function () { start(estimate()); });
     } else {
       start(estimate());
     }
   })();
 </script>
+<script data-goatcounter="https://grayacademy.goatcounter.com/count"
+        async src="https://gc.zgo.at/count.js" crossorigin="anonymous"></script>
 
 </body>
 </html>
