@@ -99,6 +99,7 @@
   .btn-secondary { background: var(--accent-2); color: #fff; }
   .btn-ghost { border-color: var(--border); color: var(--ink); background: var(--bg-card); }
   .free-note { margin-top: 16px; font-size: .9rem; color: var(--ink-soft); }
+  .lang-logo { height: 1.1em; width: auto; vertical-align: -.18em; }
 
   /* ---------- terminal demo ---------- */
   .term {
@@ -290,8 +291,8 @@
   <p class="tagline">A programming course for kids that teaches <strong>real code, one line at a time</strong> — right in the terminal, in Python or Lua.</p>
   <div class="cta-row">
     <a class="btn btn-primary" href="play.html" target="_blank" rel="noopener">▶ Play in your browser</a>
-    <a class="btn btn-ghost" href="#get-started" onclick="pickTrack('py')">🐍 Python setup</a>
-    <a class="btn btn-ghost" href="#get-started" onclick="pickTrack('lua')">🌙 Lua setup</a>
+    <a class="btn btn-ghost" href="#get-started" onclick="pickTrack('py')"><img src="python-logo.png" class="lang-logo" alt=""> Python setup</a>
+    <a class="btn btn-ghost" href="#get-started" onclick="pickTrack('lua')"><img src="lua-logo.png" class="lang-logo" alt=""> Lua setup</a>
     <a class="btn btn-ghost" href="#download">⬇ Downloads</a>
   </div>
   <p class="free-note">Free &amp; open. One file. No accounts needed and no ads.</p>
@@ -327,7 +328,7 @@ You just wrote your first Python script! 🎉</div>
       <div class="card"><div class="emoji">🛟</div><h3>Safe to explore</h3><p>Kids can experiment freely. Even a loop that never ends gets rescued — Gray plays lifeguard and stops it with a smile.</p></div>
       <div class="card"><div class="emoji">🎓</div><h3>Graduates into the real world</h3><p>In the final section the student builds their own script file, runs it with <code>python my_first_program.py</code>, and discovers the real REPL.</p></div>
       <div class="card"><div class="emoji">🪶</div><h3>Nothing to set up</h3><p>Gray is a single file with zero dependencies. If Python or Lua runs on the computer, Gray runs. Fully offline.</p></div>
-      <div class="card"><div class="emoji">🐍🌙</div><h3>Two languages, one course</h3><p>The same adventure exists in Python and Lua. Finish one track, then see how the other language says the same things!</p></div>
+      <div class="card"><div class="emoji"><img src="python-logo.png" class="lang-logo" alt="Python"> <img src="lua-logo.png" class="lang-logo" alt="Lua"></div><h3>Two languages, one course</h3><p>The same adventure exists in Python and Lua. Finish one track, then see how the other language says the same things!</p></div>
     </div>
   </div>
 </section>
@@ -359,8 +360,8 @@ You just wrote your first Python script! 🎉</div>
     In a hurry? <a href="play.html" target="_blank" rel="noopener">Play right in your browser</a> — nothing to install at all.</p>
 
     <div class="tabs" role="tablist">
-      <button class="tab-btn active-py" id="tab-py" role="tab" aria-selected="true" onclick="pickTrack('py')">🐍 Python track</button>
-      <button class="tab-btn" id="tab-lua" role="tab" aria-selected="false" onclick="pickTrack('lua')">🌙 Lua track</button>
+      <button class="tab-btn active-py" id="tab-py" role="tab" aria-selected="true" onclick="pickTrack('py')"><img src="python-logo.png" class="lang-logo" alt=""> Python track</button>
+      <button class="tab-btn" id="tab-lua" role="tab" aria-selected="false" onclick="pickTrack('lua')"><img src="lua-logo.png" class="lang-logo" alt=""> Lua track</button>
     </div>
 
     <!-- ============ PYTHON TRACK ============ -->
@@ -451,13 +452,13 @@ You just wrote your first Python script! 🎉</div>
     Or skip downloading entirely and <a href="play.html" target="_blank" rel="noopener">play in your browser</a>.</p>
     <div class="dl-row">
       <div class="dl-card">
-        <div class="emoji" style="font-size:2rem">🐍</div>
+        <div class="emoji"><img src="python-logo.png" alt="" style="height:2.4rem"></div>
         <div class="file">gray.py</div>
         <p>Python track · runs with Python 3</p>
         <a class="btn btn-primary" href="gray.py" download>⬇ Download</a>
       </div>
       <div class="dl-card">
-        <div class="emoji" style="font-size:2rem">🌙</div>
+        <div class="emoji"><img src="lua-logo.png" alt="" style="height:2.4rem"></div>
         <div class="file">gray.lua</div>
         <p>Lua track · runs with Lua 5.1+</p>
         <a class="btn btn-secondary" href="gray.lua" download>⬇ Download</a>
