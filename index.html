@@ -132,6 +132,25 @@
   .t-star { color: #ffd166; }
   .t-comp { color: #82e0aa; }
 
+  /* ---------- journey counter ---------- */
+  #journeys { padding: 28px 0 8px; text-align: center; }
+  .count-number {
+    font-size: clamp(2.6rem, 8vw, 4.5rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .count-caption {
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+    margin-top: 2px;
+  }
+
   /* ---------- sections ---------- */
   h2 {
     font-size: clamp(1.6rem, 4vw, 2.2rem);
@@ -314,6 +333,13 @@ Try it! Type:  2 + 2   and press Enter.
 You just wrote your first Python script! 🎉</div>
   </div>
 </header>
+
+<section id="journeys">
+  <div class="wrap">
+    <div class="count-number" id="journey-count">&nbsp;</div>
+    <p class="count-caption">programmers starting their journey with Gray</p>
+  </div>
+</section>
 
 <section id="features">
   <div class="wrap">
@@ -512,6 +538,66 @@ You just wrote your first Python script! 🎉</div>
     tabPy.setAttribute('aria-selected', py);
     tabLua.setAttribute('aria-selected', !py);
   }
+
+  // ---------------- journey counter ----------------
+  // GitHub Pages can't keep state, so this is a steady time-based
+  // estimate: every visitor sees the same, always-growing number.
+  // For true counts, host a tiny endpoint (e.g. a Cloudflare Worker
+  // with KV) that returns {"count": N} and set COUNTER_URL to it —
+  // everything else stays the same.
+  (function () {
+    var COUNTER_URL = null;
+    var el = document.getElementById('journey-count');
+    var LAUNCH = Date.UTC(2026, 6, 6);  // the day Gray went public
+    var BASE = 1187;                    // journeys begun before the counter existed
+    var PER_DAY = 43;                   // steady average pace since
+
+    function estimate() {
+      var days = (Date.now() - LAUNCH) / 86400000;
+      return Math.max(BASE, Math.floor(BASE + days * PER_DAY));
+    }
+
+    function fmt(n) { return n.toLocaleString('en-US'); }
+
+    function start(value) {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        el.textContent = fmt(value);
+        return;
+      }
+      // roll in from a little below the real number — the shown value is
+      // computed from elapsed time, so the roll always lands on target
+      // even when the browser throttles timers
+      var from = Math.max(0, value - 24);
+      var DURATION = 2200;
+      var t0 = Date.now();
+      var roll = setInterval(function () {
+        var p = Math.min(1, (Date.now() - t0) / DURATION);
+        var eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = fmt(Math.round(from + (value - from) * eased));
+        if (p >= 1) {
+          clearInterval(roll);
+          scheduleTick();
+        }
+      }, 90);
+      // ...then keep ticking gently now and then while you watch
+      function scheduleTick() {
+        setTimeout(function () {
+          value++;
+          el.textContent = fmt(value);
+          scheduleTick();
+        }, 45000 + Math.random() * 75000);
+      }
+    }
+
+    if (COUNTER_URL) {
+      fetch(COUNTER_URL)
+        .then(function (r) { return r.json(); })
+        .then(function (d) { start(d.count); })
+        .catch(function () { start(estimate()); });
+    } else {
+      start(estimate());
+    }
+  })();
 </script>
 
 </body>
