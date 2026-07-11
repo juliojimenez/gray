@@ -46,6 +46,18 @@ try again. At any prompt the student can type:
 - `quit` — stop; progress is saved (`.gray-progress-*` files next to
   the script), so the course resumes where they left off
 
+## The journey counter
+
+The homepage counter reads GoatCounter's public endpoint
+(`…/counter/TOTAL.json`), which GoatCounter serves through a cache that
+refreshes only every few hours — so the number lags the (live)
+dashboard. For a counter that's at most a minute behind, deploy
+[goatcounter-worker.js](goatcounter-worker.js) as a Cloudflare Worker
+(instructions in the file header) and point `COUNTER_URL` in
+[index.html](index.html) at it. The page parses `count` = **total
+pageviews** and never lets the number move backwards across cache
+snapshots.
+
 ## Auto-update
 
 On startup Gray checks `https://gray.academy/gray.py` (or `.lua`) for a
