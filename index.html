@@ -559,7 +559,26 @@ You just wrote your first Python script! 🎉</div>
 
     function fmt(n) { return n.toLocaleString('en-US'); }
 
-    function start(value) {
+    // Remember the last real count so a failed fetch (ad blocker,
+    // offline, rate limit) shows the same stable number instead of
+    // flip-flopping to the estimate.
+    var CACHE_KEY = 'gray-journeys';
+
+    function readCache() {
+      try {
+        var c = JSON.parse(localStorage.getItem(CACHE_KEY));
+        if (c && typeof c.n === 'number') return c;
+      } catch (e) { /* no storage */ }
+      return null;
+    }
+
+    function writeCache(n) {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ n: n, t: Date.now() }));
+      } catch (e) { /* no storage */ }
+    }
+
+    function start(value, isReal) {
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
         el.textContent = fmt(value);
         return;
@@ -576,10 +595,11 @@ You just wrote your first Python script! 🎉</div>
         el.textContent = fmt(Math.round(from + (value - from) * eased));
         if (p >= 1) {
           clearInterval(roll);
-          scheduleTick();
+          // the estimate keeps ticking gently while you watch; a real
+          // count only moves when real visitors arrive
+          if (!isReal) scheduleTick();
         }
       }, 90);
-      // ...then keep ticking gently now and then while you watch
       function scheduleTick() {
         setTimeout(function () {
           value++;
@@ -589,7 +609,18 @@ You just wrote your first Python script! 🎉</div>
       }
     }
 
-    if (COUNTER_URL) {
+    function fallback() {
+      var cached = readCache();
+      if (cached) start(cached.n, true);
+      else start(estimate(), false);
+    }
+
+    var fresh = readCache();
+    if (fresh && Date.now() - fresh.t < 300000) {
+      // fetched a real count in the last five minutes — reuse it and
+      // spare GoatCounter (and its rate limit) the extra request
+      start(fresh.n, true);
+    } else if (COUNTER_URL) {
       fetch(COUNTER_URL)
         .then(function (r) {
           if (!r.ok) throw new Error('counter ' + r.status);
@@ -599,11 +630,12 @@ You just wrote your first Python script! 🎉</div>
           // GoatCounter formats numbers with separators, e.g. "1 234"
           var n = parseInt(String(d.count_unique || d.count).replace(/[^0-9]/g, ''), 10);
           if (isNaN(n)) throw new Error('unparseable count');
-          start(n);
+          writeCache(n);
+          start(n, true);
         })
-        .catch(function () { start(estimate()); });
+        .catch(fallback);
     } else {
-      start(estimate());
+      fallback();
     }
   })();
 </script>
