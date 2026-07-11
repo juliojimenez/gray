@@ -583,10 +583,11 @@ You just wrote your first Python script! 🎉</div>
         el.textContent = fmt(value);
         return;
       }
-      // roll in from a little below the real number — the shown value is
-      // computed from elapsed time, so the roll always lands on target
-      // even when the browser throttles timers
-      var from = Math.max(0, value - 24);
+      // roll up from a random low number for a lively entrance — but never
+      // from above the real value, so the count always moves upward. The
+      // shown value is computed from elapsed time, so the roll lands on
+      // target even when the browser throttles timers.
+      var from = Math.min(value, 1 + Math.floor(Math.random() * 10));
       var DURATION = 2200;
       var t0 = Date.now();
       var roll = setInterval(function () {
