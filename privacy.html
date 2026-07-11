@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy — Gray</title>
+<meta name="description" content="How Gray handles privacy: no accounts, no ads, no cookies, no data sold. Progress stays in your browser.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐘</text></svg>">
+<style>
+  :root {
+    --bg: #faf7f2;
+    --bg-card: #ffffff;
+    --ink: #2b2f36;
+    --ink-soft: #5c6470;
+    --accent: #6c5ce7;
+    --accent-2: #00b894;
+    --border: #e8e2d8;
+    --radius: 16px;
+    --shadow: 0 2px 12px rgba(43, 47, 54, .07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181d;
+      --bg-card: #1f232b;
+      --ink: #e8e6e1;
+      --ink-soft: #a8adb8;
+      --accent: #8f82f5;
+      --accent-2: #26d0a8;
+      --border: #313743;
+      --shadow: 0 2px 12px rgba(0, 0, 0, .35);
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.65;
+  }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:hover { color: var(--accent-2); }
+  code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: .9em;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  header { text-align: center; padding: 48px 0 8px; }
+  header a.home { text-decoration: none; font-size: 44px; line-height: 1; }
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    letter-spacing: -.02em;
+    margin: 10px 0 4px;
+    text-align: center;
+  }
+  .updated { text-align: center; color: var(--ink-soft); font-size: .9rem; }
+  .tldr {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-2);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 22px;
+    margin: 28px 0;
+    font-size: 1.05rem;
+  }
+  section { margin: 30px 0; }
+  h2 { font-size: 1.25rem; margin-bottom: 8px; }
+  p, li { color: var(--ink-soft); }
+  ul { padding-left: 22px; margin-top: 6px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--ink); }
+  footer {
+    text-align: center;
+    padding: 40px 24px 48px;
+    color: var(--ink-soft);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <a class="home" href="index.html" title="Back to Gray">🐘</a>
+  <h1>Privacy, in plain words</h1>
+  <p class="updated">Effective July 10, 2026</p>
+</header>
+
+<main class="wrap">
+
+  <div class="tldr">
+    <strong>The short version:</strong> Gray doesn't know who you are, and likes it
+    that way. No accounts, no ads, no cookies, no data sold — ever. Course progress
+    stays in your own browser, and what you (or your kid) type in the course never
+    leaves your device.
+  </div>
+
+  <section>
+    <h2>What stays on your device</h2>
+    <p>The <a href="play.html" >browser course</a> saves a few things in your
+    browser's local storage so it can pick up where you left off:</p>
+    <ul>
+      <li><strong>Course progress</strong> — which section and lesson you're on,
+          per language.</li>
+      <li><strong>Your program</strong> — the <code>my_first_program</code> file
+          built during graduation.</li>
+      <li><strong>Small technical notes</strong> — a cached copy of the visitor
+          counter and a one-time flag the page uses to set itself up.</li>
+    </ul>
+    <p>None of this is ever transmitted anywhere. It belongs to you: the
+    <em>Start over</em> button on the play page erases the course data, and
+    clearing your browser's site data removes everything.</p>
+  </section>
+
+  <section>
+    <h2>Counting visits</h2>
+    <p>We count visits with <a href="https://www.goatcounter.com">GoatCounter</a>,
+    chosen because it uses <strong>no cookies and no persistent identifiers</strong>.
+    When a page loads, GoatCounter's server briefly processes a standard web
+    request (page visited, referrer, browser type, screen size, and country-level
+    location) to add +1 to an aggregate count. It does not build profiles of
+    visitors, and neither do we — the homepage number is the whole point. See
+    GoatCounter's own <a href="https://www.goatcounter.com/help/privacy">privacy
+    documentation</a> for details.</p>
+  </section>
+
+  <section>
+    <h2>The downloadable course</h2>
+    <p><code>gray.py</code> and <code>gray.lua</code> run entirely on your own
+    computer, offline. The only network use is a quick check of
+    <code>gray.academy</code> at startup for a newer version of the course — a
+    normal web request that sends nothing about you and fails silently without
+    internet. Setting <code>GRAY_NO_UPDATE=1</code> turns it off entirely.
+    There is no telemetry: the course never reports what anyone types, learns,
+    or builds.</p>
+  </section>
+
+  <section>
+    <h2>Playing in the browser</h2>
+    <p>The browser course runs Python and Lua <strong>inside your browser</strong> —
+    code you type is executed on your device, not on a server. To make that work,
+    the page loads the language engines from the
+    <a href="https://www.jsdelivr.com">jsDelivr</a> open-source CDN, whose servers
+    see a standard web request when the files download. What you type into the
+    course is never sent to us, to jsDelivr, or to anyone else.</p>
+  </section>
+
+  <section>
+    <h2>Made for kids</h2>
+    <p>Gray is built for children, so it's designed to collect nothing personal:
+    no names, no emails, no accounts, no chat, nothing typed in a lesson ever
+    leaves the device. Parents: the entire course is
+    <a href="https://github.com/juliojimenez/gray">open source</a>, so you can
+    read every line of what your kid is running.</p>
+  </section>
+
+  <section>
+    <h2>Questions or changes</h2>
+    <p>If this page changes, the date at the top changes with it. Questions or
+    concerns are welcome as issues on the
+    <a href="https://github.com/juliojimenez/gray">GitHub repository</a>.</p>
+  </section>
+
+</main>
+
+<footer>
+  <p>🐘 <a href="index.html">Back to Gray</a></p>
+</footer>
+
+<script data-goatcounter="https://grayacademy.goatcounter.com/count"
+        async src="https://gc.zgo.at/count.js" crossorigin="anonymous"></script>
+
+</body>
+</html>
