@@ -2,3 +2,5 @@
 .gray-progress-python.json
 my_first_program.py
 my_first_program.lua
+# paid path sources and builds — never in the public repo
+paid/

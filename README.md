@@ -46,6 +46,25 @@ try again. At any prompt the student can type:
 - `quit` — stop; progress is saved (`.gray-progress-*` files next to
   the script), so the course resumes where they left off
 
+## Paid learning paths
+
+Beyond the free Foundations course, paid paths (like **The Game Maker**)
+build on the same engine and run **browser-only**. Their content never
+lives in this public repository: sources sit in the gitignored `paid/`
+directory, and `python3 paid/build.py` splices each path's sections into
+copies of the public engines, then bundles everything into
+`paid/dist/paths-worker.js` — a Cloudflare Worker that validates
+subscription keys against Lemon Squeezy's license API (with a `DEV_KEYS`
+variable for testing and an optional `LS_STORE_ID` pin) and serves
+course content only on a valid key. The play page asks for the key once
+(`gray-license-key` in localStorage), sends it as `X-Gray-Key`, and
+keeps per-path progress under separate storage keys. One subscription
+unlocks every path. For local development, `python3 paid/dev-server.py`
+mimics the worker on `localhost:8766` with the key `GRAY-DEV-1234`.
+
+**Important:** `paid/` is gitignored — keep those sources backed up
+somewhere private (e.g. a private repo).
+
 ## The journey counter
 
 The homepage counter reads GoatCounter's public endpoint
