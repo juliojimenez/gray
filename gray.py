@@ -89,7 +89,8 @@ def nudge(text):
 #   output_is   exact text the printed output must match
 #   needs       variables (name -> default) created before the lesson if
 #               missing, so resuming mid-section always works
-#   defines     name -> "number"|"string": a box the code must create
+#   defines     name -> "number"|"string"|"function"|"list"|"dict":
+#               a box the code must create, and what must be inside
 #   var_equals  name -> value the box must hold afterwards
 #   expect_expr expression (using the student's boxes) the value must match
 #   output_has_var  name of a box whose contents must appear in the output
@@ -1727,6 +1728,26 @@ def show_value(v):
     return f'"{v}"' if isinstance(v, str) else repr(v)
 
 
+def fresh_copy(v, _seen=None):
+    """Copy lists and dicts so shared defaults and rollback snapshots
+    can't be mutated behind our back by student code. The _seen memo
+    keeps a self-referencing list or dict from recursing forever."""
+    if not isinstance(v, (list, dict)):
+        return v
+    if _seen is None:
+        _seen = {}
+    if id(v) in _seen:
+        return _seen[id(v)]
+    out = [] if isinstance(v, list) else {}
+    _seen[id(v)] = out
+    if isinstance(v, list):
+        out.extend(fresh_copy(x, _seen) for x in v)
+    else:
+        for key, x in v.items():
+            out[key] = fresh_copy(x, _seen)
+    return out
+
+
 def check(lesson, source, value, output, error):
     """Decide if the student's code solves the task. Returns (ok, feedback)."""
     if error is not None:
@@ -1779,6 +1800,12 @@ def check(lesson, source, value, output, error):
         if kind == "function" and not callable(val):
             return False, (f"'{box}' should be a new WORD the computer learns.\n"
                            f"  Teach it with:  def {box}(): ...")
+        if kind == "list" and not isinstance(val, list):
+            return False, (f"The box '{box}' should hold a LIST — a row of things\n"
+                           '  in square brackets, like  ["sword", "apple"]')
+        if kind == "dict" and not isinstance(val, dict):
+            return False, (f"The box '{box}' should hold labels and values in\n"
+                           '  curly braces, like  {"name": "Ada", "hp": 20}')
     for box, want in lesson.get("var_equals", {}).items():
         if box not in STUDENT_ENV:
             return False, (f"I don't see a box called '{box}' yet.\n"
@@ -1864,7 +1891,9 @@ def do_task(lesson, praise_index):
             say(dim("\n  Skipped! (You can come back to it from the menu.)\n"))
             return "done"
 
-        snapshot = dict(STUDENT_ENV)  # a failed try must not change the boxes
+        # a failed try must not change the boxes — including what's INSIDE
+        # lists and dicts, so those are copied, not just referenced
+        snapshot = {k: fresh_copy(v) for k, v in STUDENT_ENV.items()}
         value, output, error = run_code(typed)
         if value is not NO_VALUE and value is not None and error is None:
             say(f"  {bold('= ' + repr(value))}")
@@ -1999,7 +2028,7 @@ def run_section(section_index, start_lesson):
     while lesson_index < len(section["lessons"]):
         lesson = section["lessons"][lesson_index]
         for box, default in lesson.get("needs", {}).items():
-            STUDENT_ENV.setdefault(box, default)
+            STUDENT_ENV.setdefault(box, fresh_copy(default))
         for box, code in lesson.get("needs_code", {}).items():
             if box not in STUDENT_ENV:
                 run_code(code)

@@ -141,6 +141,19 @@
     text-decoration: underline;
     cursor: pointer;
   }
+  .key-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--term-bg);
+    color: var(--ink);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .95rem;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .key-input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -186,6 +199,22 @@
   </div>
 </div>
 
+<div class="overlay" id="unlock" hidden>
+  <div class="panel">
+    <h1 id="unlock-title">🗺 This path</h1>
+    <p id="unlock-msg"></p>
+    <p><input class="key-input" id="unlock-key" placeholder="paste your subscription key"
+              autocomplete="off" spellcheck="false"></p>
+    <div class="choices">
+      <button class="big-btn py" id="btn-unlock">🔓 Unlock</button>
+      <!-- TODO: replace with your Lemon Squeezy checkout link -->
+      <a class="big-btn lua" id="btn-buy" target="_blank" rel="noopener"
+         href="https://TODO-your-store.lemonsqueezy.com/buy/TODO-product-id">✨ Get the subscription</a>
+    </div>
+    <p style="margin: 14px 0 0"><a class="plain" id="unlock-free-link" href="play.html">or keep playing the free Foundations path</a></p>
+  </div>
+</div>
+
 <div class="overlay" id="exited" hidden>
   <div class="panel">
     <h1 id="exited-title">👋 See you soon!</h1>
@@ -205,13 +234,35 @@
   const params = new URLSearchParams(location.search);
   const lang = params.get("lang");
 
+  // learning paths: Foundations is free; paid paths are fetched from the
+  // paths worker, which validates the subscription key
+  const PATHS = {
+    foundations: { title: null, free: true },
+    gamemaker: { title: "The Game Maker", free: false },
+  };
+  let path = params.get("path") || "foundations";
+  if (!PATHS[path]) path = "foundations";
+  const pathInfo = PATHS[path];
+
+  // the paths worker — localhost uses the dev stub (paid/dev-server.py)
+  const PATHS_URL = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+    ? "http://localhost:8766"
+    : "https://TODO-paths-worker.julio-f69.workers.dev"; // set after deploying paid/dist/paths-worker.js
+  const LICENSE_KEY_STORE = "gray-license-key";
+
   function setStatus(text) {
     document.getElementById("status").textContent = text;
   }
 
   if (lang !== "python" && lang !== "lua") {
+    if (path !== "foundations") {
+      // carry the chosen path through the language picker
+      document.querySelectorAll("#picker a.big-btn").forEach((a) => {
+        a.href += "&path=" + path;
+      });
+    }
     document.getElementById("picker").hidden = false;
-    document.getElementById("lang-chip").textContent = "no language yet";
+    document.getElementById("lang-chip").textContent = pathInfo.title || "no language yet";
     setStatus("");
     return;
   }
@@ -219,13 +270,22 @@
   const SOURCE_FILE = lang === "python" ? "gray.py" : "gray.lua";
   const WORKER_FILE = lang === "python" ? "play-python-worker.js" : "play-lua-worker.js";
   const PROGRAM_NAME = lang === "python" ? "my_first_program.py" : "my_first_program.lua";
-  const STORE_KEY = "gray-play-" + lang;
+  // foundations keeps its original storage key so nobody loses progress
+  const STORE_KEY = path === "foundations"
+    ? "gray-play-" + lang
+    : "gray-play-" + path + "-" + lang;
 
   // the play page is always dark-themed, so always the dark Lua logo
-  document.getElementById("lang-chip").innerHTML = lang === "python"
+  const langChipHtml = lang === "python"
     ? '<img src="python-logo.png" class="lang-logo" alt=""> Python'
     : '<img src="lua-logo-dark.png" class="lang-logo" alt=""> Lua';
-  document.title = "Play Gray — " + (lang === "python" ? "Python" : "Lua");
+  document.getElementById("lang-chip").innerHTML =
+    (pathInfo.title ? pathInfo.title + " · " : "") + langChipHtml;
+  document.title = "Play " + (pathInfo.title || "Gray") + " — " +
+    (lang === "python" ? "Python" : "Lua");
+  if (path !== "foundations") {
+    document.getElementById("btn-switch").href = "play.html?path=" + path;
+  }
 
   // ---------------- terminal ----------------
   const term = new Terminal({
@@ -541,6 +601,79 @@
     term,
   };
 
+  // ---------------- unlock flow (paid paths) ----------------
+  function storedKey() {
+    try { return localStorage.getItem(LICENSE_KEY_STORE) || ""; } catch (err) { return ""; }
+  }
+
+  function saveKey(key) {
+    try { localStorage.setItem(LICENSE_KEY_STORE, key); } catch (err) { /* private mode */ }
+  }
+
+  function showUnlock(rejected) {
+    setStatus("🔒 this path needs a subscription key");
+    document.getElementById("unlock-title").textContent = "🗺 " + (pathInfo.title || "This path");
+    document.getElementById("unlock-msg").textContent = rejected
+      ? "That key doesn't seem to be active. Check it for typos — and that the subscription is still running."
+      : "This path is part of the Gray subscription. Paste your key to unlock every paid path — current and future.";
+    document.getElementById("unlock-free-link").href = "play.html?lang=" + lang;
+    document.getElementById("unlock-key").value = storedKey();
+    document.getElementById("unlock").hidden = false;
+    document.getElementById("unlock-key").focus();
+  }
+
+  function fetchCourse() {
+    if (pathInfo.free) {
+      // no-cache = always revalidate: the browser course must stay as
+      // fresh as the published one (its self-updater is disabled here)
+      return fetch(SOURCE_FILE, { cache: "no-cache" }).then((res) => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      });
+    }
+    const key = storedKey();
+    if (!key) return Promise.reject(Object.assign(new Error("no key yet"), { needsKey: true }));
+    return fetch(PATHS_URL + "/course/" + path + "/" + lang, {
+      headers: { "X-Gray-Key": key },
+      cache: "no-store",
+    }).then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        throw Object.assign(new Error("key rejected"), { needsKey: true, rejected: true });
+      }
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.text();
+    });
+  }
+
+  function loadAndBoot() {
+    fetchCourse()
+      .then((text) => {
+        sourceText = text;
+        boot("course");
+        term.focus();
+      })
+      .catch((err) => {
+        if (err.needsKey) {
+          showUnlock(!!err.rejected);
+          return;
+        }
+        term.writeln(dim("  🙈 Could not fetch the course (" + err.message + "). Try reloading!"));
+        setState("done");
+      });
+  }
+
+  onClick("btn-unlock", () => {
+    const key = document.getElementById("unlock-key").value.trim();
+    if (!key) return;
+    saveKey(key);
+    document.getElementById("unlock").hidden = true;
+    term.writeln(dim("  🔑 Checking your key…"));
+    loadAndBoot();
+  });
+  document.getElementById("unlock-key").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") document.getElementById("btn-unlock").click();
+  });
+
   // ---------------- go ----------------
   term.writeln(dim("  🐘 Waking Gray up…"));
 
@@ -554,21 +687,7 @@
     return;
   }
 
-  // no-cache = always revalidate: the browser course must stay as fresh
-  // as the published one (its built-in self-updater is disabled here)
-  fetch(SOURCE_FILE, { cache: "no-cache" })
-    .then((res) => {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.text();
-    })
-    .then((text) => {
-      sourceText = text;
-      boot();
-    })
-    .catch((err) => {
-      term.writeln(dim("  🙈 Could not fetch the course (" + err.message + "). Try reloading!"));
-      setState("done");
-    });
+  loadAndBoot();
 })();
 </script>
 <script data-goatcounter="https://grayacademy.goatcounter.com/count"

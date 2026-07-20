@@ -153,7 +153,8 @@ local function nudge(text) say(yellow("\n  🤔 " .. text .. "\n")) end
 --   output_is   exact text the printed output must match
 --   needs       variables (name -> default) created before the lesson if
 --               missing, so resuming mid-section always works
---   defines     name -> "number"|"string": a box the code must create
+--   defines     name -> "number"|"string"|"function"|"table":
+--               a box the code must create, and what must be inside
 --   var_equals  name -> value the box must hold afterwards
 --   expect_expr expression (using the student's boxes) the value must match
 --   output_has_var  name of a box whose contents must appear in the output
@@ -1573,7 +1574,25 @@ end
 
 local function show_value(v)
   if type(v) == "string" then return '"' .. v .. '"' end
+  if type(v) == "table" then
+    local parts = {}
+    for i = 1, #v do parts[#parts + 1] = show_value(v[i]) end
+    return "{" .. table.concat(parts, ", ") .. "}"
+  end
   return tostring(v)
+end
+
+-- Copy tables so shared defaults and rollback snapshots can't be
+-- mutated behind our back by student code. The seen-table keeps a
+-- self-referencing table (t.me = t) from recursing forever.
+local function fresh_copy(v, seen)
+  if type(v) ~= "table" then return v end
+  seen = seen or {}
+  if seen[v] then return seen[v] end
+  local copy = {}
+  seen[v] = copy
+  for k, x in pairs(v) do copy[fresh_copy(k, seen)] = fresh_copy(x, seen) end
+  return copy
 end
 
 local function check(lesson, source, value, output_lines, err)
@@ -1653,6 +1672,10 @@ local function check(lesson, source, value, output_lines, err)
     if kind == "function" and type(val) ~= "function" then
       return false, "'" .. box .. "' should be a new WORD the computer learns.\n" ..
                     "  Teach it with:  function " .. box .. "() ... end"
+    end
+    if kind == "table" and type(val) ~= "table" then
+      return false, "The box '" .. box .. "' should hold a TABLE — things\n" ..
+                    '  between curly braces, like  {"sword", "apple"}'
     end
   end
   for box, want in pairs(lesson.var_equals or {}) do
@@ -1767,8 +1790,10 @@ local function do_task(lesson, praise_index)
         say(dim("\n  Skipped! (You can come back to it from the menu.)\n"))
         return "done"
       else
-        local snapshot = {} -- a failed try must not change the boxes
-        for k, v in pairs(STUDENT_ENV) do snapshot[k] = v end
+        -- a failed try must not change the boxes — including what's
+        -- INSIDE tables, so those are copied, not just referenced
+        local snapshot = {}
+        for k, v in pairs(STUDENT_ENV) do snapshot[k] = fresh_copy(v) end
         local value, output_lines, err = run_code(typed)
         if value ~= NO_VALUE and err == nil then
           say("  " .. bold("= " .. tostring(value)))
@@ -1934,7 +1959,7 @@ local function run_section(section_index, start_lesson)
   while lesson_index <= #section.lessons do
     local lesson = section.lessons[lesson_index]
     for box, default in pairs(lesson.needs or {}) do
-      if rawget(STUDENT_ENV, box) == nil then STUDENT_ENV[box] = default end
+      if rawget(STUDENT_ENV, box) == nil then STUDENT_ENV[box] = fresh_copy(default) end
     end
     for box, code in pairs(lesson.needs_code or {}) do
       if rawget(STUDENT_ENV, box) == nil then run_code(code) end
