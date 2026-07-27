@@ -38,7 +38,10 @@ all), and a download chip lets kids take the file home. See
 Gray explains a concept, then the student types **real code** at the
 `you>` prompt. Gray runs it, shows the result like a real REPL, and
 checks it: right answers get a cheer, wrong ones get a gentle nudge to
-try again. At any prompt the student can type:
+try again. Unfinished code (a Python line ending in `:`, a Lua block
+waiting for its `end`) opens a `...>` continuation prompt, so students
+write real multi-line blocks; an empty line always runs what's there.
+At any prompt the student can type:
 
 - `hint` — get a hint for the current challenge
 - `skip` — skip a challenge
@@ -145,7 +148,7 @@ text (shown with "press Enter to continue") or a task with checks:
 | `say_browser`    | shown instead of `say` when Gray runs in the browser (`GRAY_BROWSER=1`, set by the play-page workers) — used by graduation lessons to explain the ▶ Run / ⬇ download buttons instead of terminal commands |
 | `task`           | student must type code that passes the checks         |
 | `hint`           | shown when the student types `hint`                   |
-| `must_use`       | substrings the code must contain (e.g. `["+"]`)       |
+| `must_use`       | substrings the code must contain (e.g. `["+"]`; `"\n"` means the code must span more than one line) |
 | `expect`         | value the code must produce (e.g. `8`)                |
 | `needs_print`    | code must use `print` and actually print something    |
 | `output_is`      | exact text the printed output must match              |

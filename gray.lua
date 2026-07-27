@@ -9,7 +9,7 @@
 
 local PROGRESS_FILE = (arg[0]:match("(.*[/\\])") or "") .. ".gray-progress-lua.txt"
 
-local GRAY_VERSION = 5 -- bumped on every release; the update check compares this
+local GRAY_VERSION = 6 -- bumped on every release; the update check compares this
 local UPDATE_URL = "https://gray.academy/gray.lua"
 
 -- The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so
@@ -147,7 +147,8 @@ local function nudge(text) say(yellow("\n  🤔 " .. text .. "\n")) end
 --   say_browser shown instead of say when Gray runs in the browser
 --   task        if true, the student must type code that passes the checks
 --   hint        shown when the student types: hint
---   must_use    list of substrings the code must contain (e.g. {"+"})
+--   must_use    list of substrings the code must contain (e.g. {"+"};
+--               "\n" means: the code must span more than one line)
 --   expect      the value the code must produce (e.g. 8)
 --   needs_print true -> code must use print and actually print something
 --   output_is   exact text the printed output must match
@@ -504,6 +505,24 @@ local SECTIONS = {
         needs_print = true,
       },
       {
+        say = "Now a secret about that line: it has TWO parts —\n" ..
+              "the QUESTION and the JOB — and real Lua code\n" ..
+              "usually gives each part its own line:\n" ..
+              "\n" ..
+              "    if 10 > 5 then\n" ..
+              '      print("10 is bigger!")\n' ..
+              "    end\n" ..
+              "\n" ..
+              "Type just  if 10 > 5 then  and press Enter. Gray answers\n" ..
+              "...>  — that means 'and then?'. Keep going, line by line —\n" ..
+              "the moment you type  end,  the code runs!",
+        task = true,
+        hint = "Three lines, three Enters:  if 10 > 5 then\n" ..
+               '     then  print("10 is bigger!")  and finally  end',
+        must_use = { "if", "then", "end", "\n" },
+        needs_print = true,
+      },
+      {
         say = "The question was TRUE, so the computer did the job!\n" ..
               "But what if the question is FALSE?\n" ..
               "\n" ..
@@ -848,14 +867,19 @@ local SECTIONS = {
       },
       {
         say = "Now the countdown. The loop has TWO jobs — say the\n" ..
-              "number, then make it smaller. Between  do  and  end\n" ..
-              "there's room for both:\n" ..
+              "number, then make it smaller. Stack them between  do\n" ..
+              "and  end,  each on its own line:\n" ..
               "\n" ..
-              "    while count > 0 do print(count) count = count - 1 end\n" ..
+              "    while count > 0 do\n" ..
+              "      print(count)\n" ..
+              "      count = count - 1\n" ..
+              "    end\n" ..
               "\n" ..
-              "Read it: WHILE count is bigger than 0 — say it, shrink it.",
+              "Read it: WHILE count is bigger than 0 — say it, shrink it.\n" ..
+              "(The  end  launches it! 🚀)",
         task = true,
-        hint = "Type:  while count > 0 do print(count) count = count - 1 end",
+        hint = "Four lines:  while count > 0 do   then  print(count)\n" ..
+               "     then  count = count - 1   and finally  end",
         must_use = { "while", ">", "-" },
         output_is = "10\n9\n8\n7\n6\n5\n4\n3\n2\n1",
         var_equals = { count = 0 },
@@ -922,17 +946,23 @@ local SECTIONS = {
               "A new word is called a FUNCTION, and in Lua you teach\n" ..
               "it with... the word  function:\n" ..
               "\n" ..
-              '    function cheer() print("Hip hip hooray!") end',
+              "    function cheer()\n" ..
+              '      print("Hip hip hooray!")\n' ..
+              "    end",
       },
       {
         say = "Teach your computer to cheer! Type:\n" ..
               "\n" ..
-              '    function cheer() print("Hip hip hooray!") end\n' ..
+              "    function cheer()\n" ..
+              '      print("Hip hip hooray!")\n' ..
+              "    end\n" ..
               "\n" ..
+              "(Line by line — the  end  finishes the word.)\n" ..
               "Watch closely: NOTHING will happen. That's right —\n" ..
               "you're only TEACHING the word, not saying it yet.",
         task = true,
-        hint = 'Type:  function cheer() print("Hip hip hooray!") end',
+        hint = "Three lines:  function cheer()\n" ..
+               '     then  print("Hip hip hooray!")  and finally  end',
         must_use = { "function", "cheer", "print" },
         defines = { cheer = "function" },
       },
@@ -1334,9 +1364,9 @@ local SECTIONS = {
               "\n" ..
               "Here's the last secret Gray has been keeping:\n" ..
               "everything you typed here was REAL Lua — but real\n" ..
-              "programmers don't type one line at a time forever.\n" ..
-              "They save MANY lines in a FILE, and the computer runs\n" ..
-              "the whole file, top to bottom, in one go.\n" ..
+              "programmers don't retype their code every time they\n" ..
+              "want it to run. They save it all in a FILE, and the\n" ..
+              "computer runs the whole file, top to bottom, in one go.\n" ..
               "\n" ..
               "In fact... Gray itself is just a file like that! You've\n" ..
               "been running it all along:  lua gray.lua\n" ..
@@ -1348,9 +1378,9 @@ local SECTIONS = {
               "\n" ..
               "Here's the last secret Gray has been keeping:\n" ..
               "everything you typed here was REAL Lua — but real\n" ..
-              "programmers don't type one line at a time forever.\n" ..
-              "They save MANY lines in a FILE, and the computer runs\n" ..
-              "the whole file, top to bottom, in one go.\n" ..
+              "programmers don't retype their code every time they\n" ..
+              "want it to run. They save it all in a FILE, and the\n" ..
+              "computer runs the whole file, top to bottom, in one go.\n" ..
               "\n" ..
               "In fact... Gray itself is just a program like that —\n" ..
               "and right now it's running inside your browser!\n" ..
@@ -1457,14 +1487,15 @@ local SECTIONS = {
               "with its own prompt:  >\n" ..
               "\n" ..
               "That's called the REPL — a place to talk to Lua\n" ..
-              "directly, one line at a time. Sound familiar? It's\n" ..
-              "exactly what the  you>  prompt has been all along!\n" ..
+              "directly, piece by piece. Sound familiar? It's exactly\n" ..
+              "what the  you>  prompt has been all along — Lua even\n" ..
+              "asks  >>  for more lines, just like Gray's  ...>  !\n" ..
               "Try  2 + 2  in there. Old friends. 😉\n" ..
               "\n" ..
               "(To leave the REPL, type  os.exit()  and press Enter.)",
         say_browser = "One more secret before you graduate. 🤫\n" ..
               "\n" ..
-              "Talking to Lua one line at a time — like you've been\n" ..
+              "Talking to Lua piece by piece — like you've been\n" ..
               "doing at the  you>  prompt — has a fancy name: the REPL.\n" ..
               "\n" ..
               "And on a real computer you don't even need Gray for it:\n" ..
@@ -1541,6 +1572,16 @@ local function compile(source)
   return load(source, "lesson", "t", STUDENT_ENV)
 end
 
+-- Code that stops mid-sentence — an  if  without its  end,  an open
+-- parenthesis — makes the compiler complain about '<eof>'. That's the
+-- cue to ask for more lines instead of calling the code broken.
+local function unfinished(source)
+  if compile("return " .. source) then return false end
+  local chunk, err = compile(source)
+  if chunk then return false end
+  return err ~= nil and err:find("<eof>", 1, true) ~= nil
+end
+
 -- Run a chunk with a watchdog: a loop that never ends gets stopped
 -- (Ctrl+C would kill Lua entirely, so Gray plays lifeguard instead).
 local function run_guarded(chunk)
@@ -1553,7 +1594,8 @@ local function run_guarded(chunk)
   return ok, value
 end
 
--- Run one line of student code. Returns (value, printed_lines, error).
+-- Run the student's code — one line or a whole block.
+-- Returns (value, printed_lines, error).
 local function run_code(source)
   captured_output = {}
   local chunk = compile("return " .. source)
@@ -1603,6 +1645,10 @@ local function check(lesson, source, value, output_lines, err)
   end
   for _, needed in ipairs(lesson.must_use or {}) do
     if not source:find(needed, 1, true) then
+      if needed == "\n" then
+        return false, "You did it in ONE line — nice! But this time, split it up:\n" ..
+                      "  press Enter early and finish the job at the  ...>  prompt."
+      end
       if needed == "+" or needed == "-" or needed == "*" or needed == "/" then
         return false, "You're allowed to know the answer — but let the COMPUTER " ..
                       "do the work!\n  Use the  " .. needed .. "  sign in your code."
@@ -1748,7 +1794,7 @@ end
 local PRAISE = { "Perfect!", "You got it!", "Exactly right!", "Amazing!", "That's it!",
                  "Wow, nice work!", "Correct!", "You're a natural!" }
 
--- Save the student's line into their very own script file.
+-- Save the student's code into their very own script file.
 local function add_to_script(lesson, source)
   local target = lesson.append_to_file
   if not target then return end
@@ -1760,7 +1806,7 @@ local function add_to_script(lesson, source)
   end
   fh:write(source, "\n")
   fh:close()
-  say(dim("  📝 line saved to  " .. target))
+  say(dim("  📝 saved to  " .. target))
 end
 
 ---------------------------------------------------------------------------
@@ -1790,6 +1836,15 @@ local function do_task(lesson, praise_index)
         say(dim("\n  Skipped! (You can come back to it from the menu.)\n"))
         return "done"
       else
+        -- Unfinished code pulls in more lines, REPL-style, until the
+        -- chunk compiles. An empty line runs it as-is (mistakes and
+        -- all), so nobody gets stuck behind a missing  end.
+        while unfinished(typed) do
+          local more = prompt(magenta("  ...> "))
+          if more == nil then return "quit" end
+          if more:match("^%s*$") then break end
+          typed = typed .. "\n" .. more
+        end
         -- a failed try must not change the boxes — including what's
         -- INSIDE tables, so those are copied, not just referenced
         local snapshot = {}
