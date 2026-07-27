@@ -7,6 +7,7 @@ You type real Python code, Gray checks it and cheers you on.
 Progress is saved in .gray-progress-python.json so you can stop anytime.
 """
 
+import codeop
 import json
 import os
 import re
@@ -25,7 +26,7 @@ except ImportError:
 PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              ".gray-progress-python.json")
 
-GRAY_VERSION = 5  # bumped on every release; the update check compares this
+GRAY_VERSION = 6  # bumped on every release; the update check compares this
 UPDATE_URL = "https://gray.academy/gray.py"
 
 # The browser edition at gray.academy/play.html sets GRAY_BROWSER=1, so
@@ -83,7 +84,8 @@ def nudge(text):
 #   say_browser shown instead of say when Gray runs in the browser
 #   task        if True, the student must type code that passes the checks
 #   hint        shown when the student types: hint
-#   must_use    list of substrings the code must contain (e.g. ["+"])
+#   must_use    list of substrings the code must contain (e.g. ["+"];
+#               "\n" means: the code must span more than one line)
 #   expect      the value the code must produce (e.g. 8)
 #   needs_print True -> code must use print and actually print something
 #   output_is   exact text the printed output must match
@@ -491,6 +493,27 @@ SECTIONS = [
                 "task": True,
                 "hint": 'Type it exactly:  if 10 > 5: print("10 is bigger!")',
                 "must_use": ["if", ">", ":"],
+                "needs_print": True,
+            },
+            {
+                "say": (
+                    "Now a secret about that line: it has TWO parts —\n"
+                    "the QUESTION and the JOB — and real Python code\n"
+                    "usually gives each part its OWN line:\n"
+                    "\n"
+                    "    if 10 > 5:\n"
+                    '        print("10 is bigger!")\n'
+                    "\n"
+                    "Type just  if 10 > 5:  and press Enter. Gray answers\n"
+                    "...>  — that means 'and then?'. Type the print there,\n"
+                    "starting with a few spaces. Then press Enter on an\n"
+                    "EMPTY line to say: that's everything — run it!"
+                ),
+                "task": True,
+                "hint": ("Three steps:  if 10 > 5:  and Enter — then\n"
+                         '       print("10 is bigger!")  with spaces in front — then\n'
+                         "     Enter on an empty line to run it!"),
+                "must_use": ["if", ":", "\n"],
                 "needs_print": True,
             },
             {
@@ -906,15 +929,20 @@ SECTIONS = [
             {
                 "say": (
                     "Now the countdown. The loop has TWO jobs — say the\n"
-                    "number, then make it smaller. A semicolon  ;  glues\n"
-                    "two jobs into one line:\n"
+                    "number, then make it smaller. Stack them under the\n"
+                    "while,  each on its own line:\n"
                     "\n"
-                    "    while count > 0: print(count); count = count - 1\n"
+                    "    while count > 0:\n"
+                    "        print(count)\n"
+                    "        count = count - 1\n"
                     "\n"
-                    "Read it: WHILE count is bigger than 0 — say it, shrink it."
+                    "Read it: WHILE count is bigger than 0 — say it, shrink it.\n"
+                    "(Finish with an empty line to launch! 🚀)"
                 ),
                 "task": True,
-                "hint": "Type:  while count > 0: print(count); count = count - 1",
+                "hint": ("Type  while count > 0:  and Enter, then the two jobs —\n"
+                         "     print(count)  and  count = count - 1  — with spaces\n"
+                         "     in front, then an empty line to run it."),
                 "must_use": ["while", ">", "-"],
                 "output_is": "10\n9\n8\n7\n6\n5\n4\n3\n2\n1",
                 "var_equals": {"count": 0},
@@ -990,20 +1018,26 @@ SECTIONS = [
                     "A new word is called a FUNCTION, and you teach it\n"
                     "with  def  (short for 'define'):\n"
                     "\n"
-                    '    def cheer(): print("Hip hip hooray!")'
+                    "    def cheer():\n"
+                    '        print("Hip hip hooray!")'
                 ),
             },
             {
                 "say": (
                     "Teach your computer to cheer! Type:\n"
                     "\n"
-                    '    def cheer(): print("Hip hip hooray!")\n'
+                    "    def cheer():\n"
+                    '        print("Hip hip hooray!")\n'
                     "\n"
+                    "(You know the dance: the job line with spaces in front,\n"
+                    "then an empty line.)\n"
                     "Watch closely: NOTHING will happen. That's right —\n"
                     "you're only TEACHING the word, not saying it yet."
                 ),
                 "task": True,
-                "hint": 'Type:  def cheer(): print("Hip hip hooray!")',
+                "hint": ('Type  def cheer():  and Enter, then\n'
+                         '       print("Hip hip hooray!")  with spaces in front,\n'
+                         "     then an empty line."),
                 "must_use": ["def", "cheer", "print"],
                 "defines": {"cheer": "function"},
             },
@@ -1476,9 +1510,9 @@ SECTIONS = [
                     "\n"
                     "Here's the last secret Gray has been keeping:\n"
                     "everything you typed here was REAL Python — but real\n"
-                    "programmers don't type one line at a time forever.\n"
-                    "They save MANY lines in a FILE, and the computer runs\n"
-                    "the whole file, top to bottom, in one go.\n"
+                    "programmers don't retype their code every time they\n"
+                    "want it to run. They save it all in a FILE, and the\n"
+                    "computer runs the whole file, top to bottom, in one go.\n"
                     "\n"
                     "In fact... Gray itself is just a file like that! You've\n"
                     "been running it all along:  python gray.py\n"
@@ -1492,9 +1526,9 @@ SECTIONS = [
                     "\n"
                     "Here's the last secret Gray has been keeping:\n"
                     "everything you typed here was REAL Python — but real\n"
-                    "programmers don't type one line at a time forever.\n"
-                    "They save MANY lines in a FILE, and the computer runs\n"
-                    "the whole file, top to bottom, in one go.\n"
+                    "programmers don't retype their code every time they\n"
+                    "want it to run. They save it all in a FILE, and the\n"
+                    "computer runs the whole file, top to bottom, in one go.\n"
                     "\n"
                     "In fact... Gray itself is just a program like that —\n"
                     "and right now it's running inside your browser!\n"
@@ -1617,8 +1651,9 @@ SECTIONS = [
                     "with its own prompt:  >>>\n"
                     "\n"
                     "That's called the REPL — a place to talk to Python\n"
-                    "directly, one line at a time. Sound familiar? It's\n"
-                    "exactly what the  you>  prompt has been all along!\n"
+                    "directly, piece by piece. Sound familiar? It's exactly\n"
+                    "what the  you>  prompt has been all along — Python even\n"
+                    "asks  ...  for more lines, just like Gray's  ...>  !\n"
                     "Try  2 + 2  in there. Old friends. 😉\n"
                     "\n"
                     "(To leave the REPL, type  exit()  and press Enter.)"
@@ -1626,7 +1661,7 @@ SECTIONS = [
                 "say_browser": (
                     "One more secret before you graduate. 🤫\n"
                     "\n"
-                    "Talking to Python one line at a time — like you've been\n"
+                    "Talking to Python piece by piece — like you've been\n"
                     "doing at the  you>  prompt — has a fancy name: the REPL.\n"
                     "\n"
                     "And on a real computer you don't even need Gray for it:\n"
@@ -1686,7 +1721,8 @@ STUDENT_ENV = {}  # shared between lessons, so later sections can use variables
 
 
 def run_code(source):
-    """Run one line of student code. Returns (value, printed_output, error).
+    """Run the student's code — one line or a whole block.
+    Returns (value, printed_output, error).
 
     The student gets their own print (shown live AND recorded for the
     checks) and their own input (so prompts appear before the wait).
@@ -1755,6 +1791,9 @@ def check(lesson, source, value, output, error):
                        "  No problem, that happens to every programmer. Try again!")
     for needed in lesson.get("must_use", []):
         if needed not in source:
+            if needed == "\n":
+                return False, ("You did it in ONE line — nice! But this time, split it up:\n"
+                               "  press Enter early and finish the job at the  ...>  prompt.")
             if needed in ("+", "-", "*", "/"):
                 return False, (f"You're allowed to know the answer — but let the COMPUTER "
                                f"do the work!\n  Use the  {needed}  sign in your code.")
@@ -1854,7 +1893,7 @@ PRAISE = ["Perfect!", "You got it!", "Exactly right!", "Amazing!", "That's it!",
 
 
 def add_to_script(lesson, source):
-    """Save the student's line into their very own script file."""
+    """Save the student's code into their very own script file."""
     target = lesson.get("append_to_file")
     if not target:
         return
@@ -1864,9 +1903,48 @@ def add_to_script(lesson, source):
             if lesson.get("start_file"):
                 fh.write("# My first program — written with Gray 🐘\n")
             fh.write(source + "\n")
-        say(dim(f"  📝 line saved to  {target}"))
+        say(dim(f"  📝 saved to  {target}"))
     except OSError:
         pass
+
+
+def read_whole_code(first_line):
+    """Keep reading until the student's code is complete, REPL-style.
+
+    A line that ends unfinished — after a ':', inside open brackets —
+    makes Gray ask for more with a  ...>  prompt, until the code
+    compiles. An empty line says 'that's everything — run it!', even
+    when the code is unfinished, so nobody gets stuck at  ...>
+    Returns the full code, '' to start over, or None to quit.
+    """
+    lines = [first_line]
+    while True:
+        source = "\n".join(lines)
+        try:
+            if codeop.compile_command(source) is not None:
+                break
+        except (SyntaxError, ValueError, OverflowError):
+            break  # broken code runs anyway, so the error gets explained
+        if len(lines) > 1 and lines[-1] == "":
+            break  # an empty line always ends the try — run it as-is
+        if len(lines) == 1:
+            # A one-liner like  if x: print(1)  is already complete —
+            # it only lacks the blank line the REPL grammar asks for,
+            # so run it right away instead of showing  ...>
+            try:
+                if codeop.compile_command(source + "\n") is not None:
+                    break
+            except (SyntaxError, ValueError, OverflowError):
+                pass  # a lone  'if x:'  — genuinely unfinished
+        try:
+            more = input(rl_safe(magenta("  ...> ")))
+        except EOFError:
+            return None
+        except KeyboardInterrupt:
+            say(dim("\n  (never mind — fresh start!)"))
+            return ""
+        lines.append(more.rstrip())
+    return "\n".join(lines).rstrip()
 
 
 def do_task(lesson, praise_index):
@@ -1890,6 +1968,12 @@ def do_task(lesson, praise_index):
         if low == "skip":
             say(dim("\n  Skipped! (You can come back to it from the menu.)\n"))
             return "done"
+
+        typed = read_whole_code(typed)
+        if typed is None:
+            return "quit"
+        if typed == "":
+            continue
 
         # a failed try must not change the boxes — including what's INSIDE
         # lists and dicts, so those are copied, not just referenced
