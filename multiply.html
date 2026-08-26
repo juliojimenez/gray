@@ -23,6 +23,9 @@
     --border: #e8e2d8;
     --radius: 16px;
     --shadow: 0 2px 12px rgba(43, 47, 54, .07);
+    /* readable-on-card variants of the accent colors (AA contrast) */
+    --good-ink: #00795f;
+    --star-ink: #8a6200;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -35,6 +38,8 @@
       --danger: #f07878;
       --border: #313743;
       --shadow: 0 2px 12px rgba(0, 0, 0, .35);
+      --good-ink: #26d0a8;
+      --star-ink: #f5b942;
     }
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -122,7 +127,7 @@
     line-height: 1.2;
   }
   .stat .value.pop { animation: pop .3s ease; }
-  #stat-best .value { color: var(--star); }
+  #stat-best .value { color: var(--star-ink); }
   @keyframes pop {
     0% { transform: scale(1); }
     50% { transform: scale(1.25); }
@@ -171,6 +176,7 @@
     font-variant-numeric: tabular-nums;
   }
   #question .x { color: var(--accent); margin: 0 .18em; }
+  #question:focus { outline: none; }
   #question.slide-in { animation: slidein .25s ease; }
   @keyframes slidein {
     from { opacity: 0; transform: translateY(10px); }
@@ -200,9 +206,9 @@
     min-height: 1.6em;
     margin-top: 10px;
     font-weight: 700;
-    color: var(--accent-2);
+    color: var(--good-ink);
   }
-  #feedback.milestone { color: var(--star); }
+  #feedback.milestone { color: var(--star-ink); }
 
   /* ---------- keypad ---------- */
   .keypad {
@@ -267,6 +273,7 @@
   .overlay {
     position: fixed;
     inset: 0;
+    background: rgba(43, 47, 54, .6); /* fallback where color-mix is unsupported */
     background: color-mix(in srgb, var(--bg) 82%, transparent);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -303,7 +310,7 @@
     font-variant-numeric: tabular-nums;
     margin: 10px 0 14px;
   }
-  .panel .fact .right { color: var(--accent-2); }
+  .panel .fact .right { color: var(--good-ink); }
   .panel .fact .wrong { color: var(--danger); text-decoration: line-through; }
   .panel .scoreline {
     display: flex;
@@ -319,7 +326,7 @@
     font-variant-numeric: tabular-nums;
   }
   .panel .record {
-    color: var(--star);
+    color: var(--star-ink);
     font-weight: 700;
     margin-bottom: 12px;
   }
@@ -343,6 +350,18 @@
     inset: 0;
     pointer-events: none;
     z-index: 20;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -369,8 +388,8 @@
   <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress"></div></div>
 
   <div class="quiz-card" id="card">
-    <div id="question" aria-live="polite">Ready?</div>
-    <div id="entry" aria-label="Your answer"><span class="caret"></span></div>
+    <div id="question" aria-live="polite" tabindex="-1">Ready?</div>
+    <div id="entry" role="status" aria-label="Your answer"><span class="caret" aria-hidden="true"></span></div>
     <div id="feedback" role="status" aria-live="polite"></div>
   </div>
 
@@ -411,7 +430,7 @@
 </div>
 
 <!-- ---------- game over overlay ---------- -->
-<div class="overlay" id="overlay-over" role="dialog" aria-modal="true" aria-labelledby="over-title" hidden>
+<div class="overlay" id="overlay-over" role="dialog" aria-modal="true" aria-labelledby="over-title" aria-describedby="over-fact" hidden>
   <div class="panel">
     <div class="big-emoji" aria-hidden="true">🙈</div>
     <h2 id="over-title">Ooof, so close!</h2>
@@ -456,6 +475,8 @@
   var entry = '';       // digits typed so far
   var playing = false;  // a run is active
   var locked = false;   // brief lock between questions
+  var prevBest = 0;     // best as it stood when this run started
+  var overlayShownAt = 0;
 
   // ---------------- elements ----------------
   var $ = function (id) { return document.getElementById(id); };
@@ -584,6 +605,9 @@
     entry = '';
     playing = true;
     locked = false;
+    // re-read storage so another tab's record is neither missed nor clobbered
+    best = Math.max(best, readBest());
+    prevBest = best;
     resetMap();
     updateStats();
     elFeedback.textContent = '';
@@ -592,6 +616,7 @@
     $('overlay-over').hidden = true;
     $('overlay-win').hidden = true;
     showQuestion();
+    elQuestion.focus({ preventScroll: true });
   }
 
   function submit() {
@@ -601,7 +626,10 @@
     if (parseInt(entry, 10) === correct) {
       score++;
       markCell(q[0], q[1]);
-      if (score > best) { best = score; writeBest(best); }
+      if (score > best) {
+        best = Math.max(score, readBest());
+        writeBest(best);
+      }
       updateStats();
       bump(stScore);
       if (score === TOTAL) { win(); return; }
@@ -623,21 +651,30 @@
     }
     var fact = $('over-fact');
     fact.innerHTML = '';
+    function srLabel(text) {
+      var s = document.createElement('span');
+      s.className = 'sr-only';
+      s.textContent = text;
+      return s;
+    }
     var wrong = document.createElement('span');
     wrong.className = 'wrong';
-    wrong.textContent = q[0] + ' × ' + q[1] + ' = ' + parseInt(entry, 10);
+    wrong.appendChild(srLabel('Your answer: '));
+    wrong.appendChild(document.createTextNode(q[0] + ' × ' + q[1] + ' = ' + parseInt(entry, 10)));
     var right = document.createElement('span');
     right.className = 'right';
-    right.textContent = q[0] + ' × ' + q[1] + ' = ' + correct;
+    right.appendChild(srLabel('Correct answer: '));
+    right.appendChild(document.createTextNode(q[0] + ' × ' + q[1] + ' = ' + correct));
     fact.appendChild(wrong);
     fact.appendChild(document.createElement('br'));
     fact.appendChild(right);
     $('over-score').textContent = score;
     $('over-best').textContent = best;
-    $('over-record').hidden = !(score > 0 && score === best);
+    $('over-record').hidden = !(score > prevBest);
     var overlay = $('overlay-over');
     setTimeout(function () {
       overlay.hidden = false;
+      overlayShownAt = Date.now();
       $('btn-again').focus();
     }, reducedMotion ? 0 : 450);
   }
@@ -647,6 +684,7 @@
     updateStats();
     var overlay = $('overlay-win');
     overlay.hidden = false;
+    overlayShownAt = Date.now();
     $('btn-again-win').focus();
     confetti();
   }
@@ -677,11 +715,23 @@
     else addDigit(k);
   });
 
+  function openOverlayButton() {
+    if (!$('overlay-start').hidden) return $('btn-start');
+    if (!$('overlay-over').hidden) return $('btn-again');
+    if (!$('overlay-win').hidden) return $('btn-again-win');
+    return null;
+  }
+
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    // let focused buttons (overlay + keypad) handle their own Enter/Space
-    if (e.target.tagName === 'BUTTON' && (e.key === 'Enter' || e.key === ' ')) return;
-    if (!$('overlay-start').hidden || !$('overlay-over').hidden || !$('overlay-win').hidden) return;
+    var overlayBtn = openOverlayButton();
+    if (overlayBtn) {
+      // the dialog's button is its only control — keep Tab on it
+      if (e.key === 'Tab') { e.preventDefault(); overlayBtn.focus(); }
+      return;
+    }
+    // let focused buttons and links handle their own Enter/Space
+    if (e.target.closest && e.target.closest('a, button') && (e.key === 'Enter' || e.key === ' ')) return;
     if (e.key >= '0' && e.key <= '9') { addDigit(e.key); e.preventDefault(); }
     else if (e.key === 'Backspace') { delDigit(); e.preventDefault(); }
     else if (e.key === 'Enter') { submit(); e.preventDefault(); }
@@ -690,6 +740,19 @@
   $('btn-start').addEventListener('click', startGame);
   $('btn-again').addEventListener('click', startGame);
   $('btn-again-win').addEventListener('click', startGame);
+
+  // a held or mashed Enter must not blast through the just-appeared dialog
+  function guardMash(btn) {
+    btn.addEventListener('keydown', function (e) {
+      if ((e.key === 'Enter' || e.key === ' ') &&
+          (e.repeat || Date.now() - overlayShownAt < 350)) {
+        e.preventDefault();
+      }
+    });
+  }
+  guardMash($('btn-start'));
+  guardMash($('btn-again'));
+  guardMash($('btn-again-win'));
 
   // ---------------- confetti ----------------
   var confettiTimer = null;
@@ -751,6 +814,7 @@
     sb.textContent = '🌟 Personal best: ' + best + ' / ' + TOTAL;
     sb.hidden = false;
   }
+  $('btn-start').focus();
 })();
 </script>
 <script data-goatcounter="https://grayacademy.goatcounter.com/count"
