@@ -204,6 +204,27 @@
   .lesson strong { display: block; }
   .lesson span { color: var(--ink-soft); font-size: .92rem; }
 
+  /* ---------- multiply mini-game ---------- */
+  #multiply { padding: 0 0 16px; }
+  .minigame {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--star);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .minigame .emoji { font-size: 2rem; }
+  .minigame .blurb { flex: 1; min-width: 220px; }
+  .minigame h3 { font-size: 1.05rem; margin-bottom: 2px; }
+  .minigame p { color: var(--ink-soft); font-size: .92rem; }
+
   /* ---------- get started tabs ---------- */
   .tabs {
     display: flex; justify-content: center; gap: 10px; margin-bottom: 28px;
@@ -375,6 +396,20 @@ You just wrote your first Python script! 🎉</div>
       <div class="lesson project"><div><strong>Project: The Silly Story Machine 📖</strong><span>A mad-libs machine — a brand-new ridiculous story every run.</span></div></div>
       <div class="lesson project"><div><strong>Project: The Club Doorkeeper 🤖</strong><span>The capstone: a robot that greets, guards, and throws a party.</span></div></div>
       <div class="lesson project"><div><strong>Graduation — programs of your own 🎓</strong><span>Build a real script file line by line, run it yourself, meet the REPL.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="multiply">
+  <div class="wrap">
+    <div class="minigame">
+      <div class="emoji" aria-hidden="true">✖️</div>
+      <div class="blurb">
+        <h3>Brain break: the Multiplication Challenge</h3>
+        <p>The loops lesson prints times tables — this little game checks you really know them.
+        One life, 144 facts, and a trophy if you clear them all. Free, like everything on this page.</p>
+      </div>
+      <a class="btn btn-primary" href="multiply">▶ Play</a>
     </div>
   </div>
 </section>
