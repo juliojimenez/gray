@@ -246,12 +246,14 @@
     max-width: 300px;
     margin: 0 auto;
   }
+  #map.single { max-width: 340px; gap: 4px; }
   #map .cell {
     aspect-ratio: 1;
     border-radius: 3px;
     background: var(--border);
     opacity: .55;
   }
+  #map.single .cell { border-radius: 5px; }
   #map .cell.done {
     opacity: 1;
     animation: cellpop .3s ease;
@@ -281,6 +283,7 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
+    overflow-y: auto;
     z-index: 10;
   }
   .overlay[hidden] { display: none; }
@@ -292,6 +295,7 @@
     padding: 34px 30px;
     max-width: 440px;
     width: 100%;
+    margin: auto; /* stays centered, but lets short viewports scroll instead of clipping */
     text-align: center;
     animation: slidein .3s ease;
   }
@@ -344,6 +348,36 @@
     transition: transform .1s ease;
   }
   .btn:hover { transform: translateY(-2px); }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--ink-soft);
+    font-size: .92rem;
+    padding: 9px 20px;
+    margin-top: 10px;
+  }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--accent); }
+
+  .table-pick {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 4px 0 16px;
+  }
+  .table-pick label { font-weight: 600; font-size: .95rem; }
+  .table-pick select {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  .table-pick select:focus { border-color: var(--accent); outline: none; }
 
   #confetti {
     position: fixed;
@@ -378,7 +412,7 @@
 
 <main>
   <h1>The <span class="grad">Multiplication</span> Challenge</h1>
-  <p class="tagline">Times tables 1–12 · one life · answer all 144 to win</p>
+  <p class="tagline" id="tagline">Times tables 1–12 · one life · answer all 144 to win</p>
 
   <div class="stats">
     <div class="stat" id="stat-score"><div class="label">Score</div><div class="value">0</div></div>
@@ -422,8 +456,26 @@
     <div class="big-emoji" aria-hidden="true">🐘✖️</div>
     <h2 id="start-title">The <span class="grad">Multiplication</span> Challenge</h2>
     <p>Gray never forgets the times tables — do you?</p>
-    <p>Answer multiplication facts from the 1s to the 12s. Every question is different.
-    One wrong answer ends the run. Get all <strong>144</strong> and you <strong>WIN!!</strong></p>
+    <p>Pick your table, then answer away. Every question is different.
+    One wrong answer ends the run. Get all <strong id="start-total">144</strong> and you <strong>WIN!!</strong></p>
+    <div class="table-pick">
+      <label for="table-select">Practice</label>
+      <select id="table-select" autocomplete="off">
+        <option value="0" selected>All tables (1–12)</option>
+        <option value="1">1 times table</option>
+        <option value="2">2 times table</option>
+        <option value="3">3 times table</option>
+        <option value="4">4 times table</option>
+        <option value="5">5 times table</option>
+        <option value="6">6 times table</option>
+        <option value="7">7 times table</option>
+        <option value="8">8 times table</option>
+        <option value="9">9 times table</option>
+        <option value="10">10 times table</option>
+        <option value="11">11 times table</option>
+        <option value="12">12 times table</option>
+      </select>
+    </div>
     <p class="record" id="start-best" hidden></p>
     <button class="btn" id="btn-start" type="button">▶ Start</button>
   </div>
@@ -441,6 +493,7 @@
     </div>
     <p class="record" id="over-record" hidden>🌟 New personal best!</p>
     <button class="btn" id="btn-again" type="button">↻ Play again</button>
+    <div><button class="btn btn-ghost" id="btn-table" type="button">🎚 Pick a different table</button></div>
   </div>
 </div>
 
@@ -449,12 +502,13 @@
   <div class="panel">
     <div class="big-emoji" aria-hidden="true">🏆</div>
     <h2 id="win-title">YOU <span class="grad">WIN!!</span></h2>
-    <p>All <strong>144</strong> multiplication facts, every single one right.
+    <p id="win-text">All 144 multiplication facts, every single one right.
     That is a perfect run — even Gray is trumpeting! 🐘🎺</p>
     <div class="scoreline">
-      <div>Perfect score<strong>144 / 144</strong></div>
+      <div>Perfect score<strong id="win-total">144 / 144</strong></div>
     </div>
     <button class="btn" id="btn-again-win" type="button">↻ Play again</button>
+    <div><button class="btn btn-ghost" id="btn-table-win" type="button">🎚 Pick a different table</button></div>
   </div>
 </div>
 
@@ -465,10 +519,11 @@
   'use strict';
 
   var TABLE_MAX = 12;
-  var TOTAL = TABLE_MAX * TABLE_MAX; // 144
   var BEST_KEY = 'gray-multiply-best';
 
   // ---------------- state ----------------
+  var table = 0;        // 0 = all tables, 1..12 = practice a single table
+  var TOTAL = TABLE_MAX * TABLE_MAX; // questions per run: 144, or 12 in single-table mode
   var deck = [];        // shuffled [a, b] pairs — guarantees no repeats
   var idx = 0;          // next question index into deck
   var score = 0;        // correct answers this run
@@ -477,6 +532,7 @@
   var locked = false;   // brief lock between questions
   var prevBest = 0;     // best as it stood when this run started
   var overlayShownAt = 0;
+  var shownA = 0, shownB = 0; // operands as displayed (single-table mode may flip them)
 
   // ---------------- elements ----------------
   var $ = function (id) { return document.getElementById(id); };
@@ -492,35 +548,49 @@
 
   var reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---------------- high score (localStorage) ----------------
+  // ---------------- high score (localStorage, one record per mode) ----------------
+  function bestKey() {
+    return table ? BEST_KEY + '-' + table : BEST_KEY;
+  }
   function readBest() {
     try {
-      var n = parseInt(localStorage.getItem(BEST_KEY), 10);
+      var n = parseInt(localStorage.getItem(bestKey()), 10);
       return isNaN(n) ? 0 : Math.min(Math.max(n, 0), TOTAL);
     } catch (e) { return 0; }
   }
   function writeBest(n) {
-    try { localStorage.setItem(BEST_KEY, String(n)); } catch (e) { /* no storage */ }
+    try { localStorage.setItem(bestKey(), String(n)); } catch (e) { /* no storage */ }
   }
-  var best = readBest();
+  var best = 0; // set by setTable() at boot
 
   // ---------------- conquest map ----------------
   var cells = [];
-  (function buildMap() {
-    for (var a = 1; a <= TABLE_MAX; a++) {
+  function makeCell(frac) {
+    var c = document.createElement('div');
+    c.className = 'cell';
+    // each conquered fact gets its own spot on the accent→teal gradient
+    c.dataset.color = 'color-mix(in srgb, var(--accent-2) ' + Math.round(frac * 100) + '%, var(--accent))';
+    elMap.appendChild(c);
+    return c;
+  }
+  function buildMap() {
+    elMap.innerHTML = '';
+    cells = [];
+    elMap.classList.toggle('single', !!table);
+    if (table) {
       for (var b = 1; b <= TABLE_MAX; b++) {
-        var c = document.createElement('div');
-        c.className = 'cell';
-        // each conquered fact gets its own spot on the accent→teal gradient
-        var mix = Math.round(((a + b - 2) / (2 * TABLE_MAX - 2)) * 100);
-        c.dataset.color = 'color-mix(in srgb, var(--accent-2) ' + mix + '%, var(--accent))';
-        elMap.appendChild(c);
-        cells.push(c);
+        cells.push(makeCell((b - 1) / (TABLE_MAX - 1)));
+      }
+    } else {
+      for (var a = 1; a <= TABLE_MAX; a++) {
+        for (var b2 = 1; b2 <= TABLE_MAX; b2++) {
+          cells.push(makeCell((a + b2 - 2) / (2 * TABLE_MAX - 2)));
+        }
       }
     }
-  })();
+  }
   function markCell(a, b) {
-    var c = cells[(a - 1) * TABLE_MAX + (b - 1)];
+    var c = cells[table ? (b - 1) : (a - 1) * TABLE_MAX + (b - 1)];
     c.style.background = 'var(--accent)';        // fallback
     c.style.background = c.dataset.color;        // ignored if color-mix unsupported
     c.classList.add('done');
@@ -542,8 +612,12 @@
   }
   function newDeck() {
     deck = [];
-    for (var a = 1; a <= TABLE_MAX; a++) {
-      for (var b = 1; b <= TABLE_MAX; b++) deck.push([a, b]);
+    if (table) {
+      for (var b = 1; b <= TABLE_MAX; b++) deck.push([table, b]);
+    } else {
+      for (var a = 1; a <= TABLE_MAX; a++) {
+        for (var b2 = 1; b2 <= TABLE_MAX; b2++) deck.push([a, b2]);
+      }
     }
     shuffle(deck);
     idx = 0;
@@ -570,13 +644,17 @@
   }
   function showQuestion() {
     var q = deck[idx];
+    var a = q[0], b = q[1];
+    // in single-table mode, flip the pair sometimes so 7×4 and 4×7 both appear
+    if (table && Math.random() < 0.5) { var t = a; a = b; b = t; }
+    shownA = a; shownB = b;
     elQuestion.innerHTML = '';
-    elQuestion.appendChild(document.createTextNode(q[0]));
+    elQuestion.appendChild(document.createTextNode(a));
     var x = document.createElement('span');
     x.className = 'x';
     x.textContent = '×';
     elQuestion.appendChild(x);
-    elQuestion.appendChild(document.createTextNode(q[1] + ' = ?'));
+    elQuestion.appendChild(document.createTextNode(b + ' = ?'));
     if (!reducedMotion) {
       elQuestion.classList.remove('slide-in');
       void elQuestion.offsetWidth;
@@ -599,6 +677,26 @@
   }
 
   // ---------------- game flow ----------------
+  function setTable(t) {
+    table = t;
+    TOTAL = table ? TABLE_MAX : TABLE_MAX * TABLE_MAX;
+    best = readBest();
+    score = 0;
+    buildMap();
+    updateStats();
+    $('start-total').textContent = TOTAL;
+    $('tagline').textContent = table
+      ? 'The ' + table + ' times table · one life · answer all ' + TOTAL + ' to win'
+      : 'Times tables 1–12 · one life · answer all 144 to win';
+    var sb = $('start-best');
+    if (best > 0) {
+      sb.textContent = '🌟 Personal best: ' + best + ' / ' + TOTAL;
+      sb.hidden = false;
+    } else {
+      sb.hidden = true;
+    }
+  }
+
   function startGame() {
     newDeck();
     score = 0;
@@ -660,11 +758,11 @@
     var wrong = document.createElement('span');
     wrong.className = 'wrong';
     wrong.appendChild(srLabel('Your answer: '));
-    wrong.appendChild(document.createTextNode(q[0] + ' × ' + q[1] + ' = ' + parseInt(entry, 10)));
+    wrong.appendChild(document.createTextNode(shownA + ' × ' + shownB + ' = ' + parseInt(entry, 10)));
     var right = document.createElement('span');
     right.className = 'right';
     right.appendChild(srLabel('Correct answer: '));
-    right.appendChild(document.createTextNode(q[0] + ' × ' + q[1] + ' = ' + correct));
+    right.appendChild(document.createTextNode(shownA + ' × ' + shownB + ' = ' + correct));
     fact.appendChild(wrong);
     fact.appendChild(document.createElement('br'));
     fact.appendChild(right);
@@ -682,11 +780,30 @@
   function win() {
     playing = false;
     updateStats();
+    $('win-text').textContent = table
+      ? 'Every fact of the ' + table + ' times table, every single one right. That is a perfect run — even Gray is trumpeting! 🐘🎺'
+      : 'All 144 multiplication facts, every single one right. That is a perfect run — even Gray is trumpeting! 🐘🎺';
+    $('win-total').textContent = TOTAL + ' / ' + TOTAL;
     var overlay = $('overlay-win');
     overlay.hidden = false;
     overlayShownAt = Date.now();
     $('btn-again-win').focus();
     confetti();
+  }
+
+  // back to the start screen to pick a different table
+  function backToStart() {
+    $('overlay-over').hidden = true;
+    $('overlay-win').hidden = true;
+    setTable(table); // refresh best + reset the displayed run behind the dialog
+    entry = '';
+    renderEntry();
+    elQuestion.textContent = 'Ready?';
+    elFeedback.textContent = '';
+    elFeedback.classList.remove('milestone');
+    $('overlay-start').hidden = false;
+    overlayShownAt = Date.now();
+    $('table-select').focus();
   }
 
   // ---------------- input ----------------
@@ -715,19 +832,29 @@
     else addDigit(k);
   });
 
-  function openOverlayButton() {
-    if (!$('overlay-start').hidden) return $('btn-start');
-    if (!$('overlay-over').hidden) return $('btn-again');
-    if (!$('overlay-win').hidden) return $('btn-again-win');
+  function openOverlay() {
+    if (!$('overlay-start').hidden) return $('overlay-start');
+    if (!$('overlay-over').hidden) return $('overlay-over');
+    if (!$('overlay-win').hidden) return $('overlay-win');
     return null;
   }
 
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    var overlayBtn = openOverlayButton();
-    if (overlayBtn) {
-      // the dialog's button is its only control — keep Tab on it
-      if (e.key === 'Tab') { e.preventDefault(); overlayBtn.focus(); }
+    var overlay = openOverlay();
+    if (overlay) {
+      // keep Tab cycling through the dialog's own controls
+      if (e.key === 'Tab') {
+        var found = overlay.querySelectorAll('button, select');
+        var list = [];
+        for (var i = 0; i < found.length; i++) list.push(found[i]);
+        var pos = list.indexOf(document.activeElement);
+        var next = pos === -1
+          ? (e.shiftKey ? list[list.length - 1] : list[0])
+          : list[(pos + (e.shiftKey ? list.length - 1 : 1)) % list.length];
+        e.preventDefault();
+        next.focus();
+      }
       return;
     }
     // let focused buttons and links handle their own Enter/Space
@@ -737,9 +864,23 @@
     else if (e.key === 'Enter') { submit(); e.preventDefault(); }
   });
 
+  // a fast double-tap on the keypad must not blast through the just-appeared
+  // dialog either — swallow clicks that land within its settle window
+  // (registered first, so stopImmediatePropagation beats the action handlers)
+  ['btn-start', 'btn-again', 'btn-again-win', 'btn-table', 'btn-table-win'].forEach(function (id) {
+    $(id).addEventListener('click', function (e) {
+      if (Date.now() - overlayShownAt < 350) e.stopImmediatePropagation();
+    });
+  });
+
   $('btn-start').addEventListener('click', startGame);
   $('btn-again').addEventListener('click', startGame);
   $('btn-again-win').addEventListener('click', startGame);
+  $('btn-table').addEventListener('click', backToStart);
+  $('btn-table-win').addEventListener('click', backToStart);
+  $('table-select').addEventListener('change', function () {
+    setTable(parseInt(this.value, 10) || 0);
+  });
 
   // a held or mashed Enter must not blast through the just-appeared dialog
   function guardMash(btn) {
@@ -808,12 +949,8 @@
   }
 
   // ---------------- boot ----------------
-  updateStats();
-  if (best > 0) {
-    var sb = $('start-best');
-    sb.textContent = '🌟 Personal best: ' + best + ' / ' + TOTAL;
-    sb.hidden = false;
-  }
+  // seed from the select's actual value — browsers may restore it on reload
+  setTable(parseInt($('table-select').value, 10) || 0);
   $('btn-start').focus();
 })();
 </script>
