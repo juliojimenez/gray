@@ -379,6 +379,24 @@
   }
   .table-pick select:focus { border-color: var(--accent); outline: none; }
 
+  .review-pick { margin: -4px 0 16px; }
+  .review-pick label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: .95rem;
+    cursor: pointer;
+  }
+  .review-pick input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .review-pick input:disabled { cursor: not-allowed; }
+  .review-pick input:disabled + span { opacity: .5; }
+
   #confetti {
     position: fixed;
     inset: 0;
@@ -476,6 +494,13 @@
         <option value="12">12 times table</option>
       </select>
     </div>
+    <div class="review-pick">
+      <label>
+        <input type="checkbox" id="review-check" autocomplete="off" disabled>
+        <span>Review: also mix in all the tables before the one picked</span>
+      </label>
+    </div>
+    <p class="sr-only" id="start-announce" role="status"></p>
     <p class="record" id="start-best" hidden></p>
     <button class="btn" id="btn-start" type="button">▶ Start</button>
   </div>
@@ -523,6 +548,7 @@
 
   // ---------------- state ----------------
   var table = 0;        // 0 = all tables, 1..12 = practice a single table
+  var review = false;   // with table >= 2: also include every table below it
   var TOTAL = TABLE_MAX * TABLE_MAX; // questions per run: 144, or 12 in single-table mode
   var deck = [];        // shuffled [a, b] pairs — guarantees no repeats
   var idx = 0;          // next question index into deck
@@ -550,7 +576,7 @@
 
   // ---------------- high score (localStorage, one record per mode) ----------------
   function bestKey() {
-    return table ? BEST_KEY + '-' + table : BEST_KEY;
+    return table ? BEST_KEY + '-' + table + (review ? '-review' : '') : BEST_KEY;
   }
   function readBest() {
     try {
@@ -576,13 +602,15 @@
   function buildMap() {
     elMap.innerHTML = '';
     cells = [];
-    elMap.classList.toggle('single', !!table);
-    if (table) {
+    var single = !!table && !review;
+    elMap.classList.toggle('single', single);
+    if (single) {
       for (var b = 1; b <= TABLE_MAX; b++) {
         cells.push(makeCell((b - 1) / (TABLE_MAX - 1)));
       }
     } else {
-      for (var a = 1; a <= TABLE_MAX; a++) {
+      var hi = table || TABLE_MAX; // review mode: one row per table 1..N
+      for (var a = 1; a <= hi; a++) {
         for (var b2 = 1; b2 <= TABLE_MAX; b2++) {
           cells.push(makeCell((a + b2 - 2) / (2 * TABLE_MAX - 2)));
         }
@@ -590,7 +618,7 @@
     }
   }
   function markCell(a, b) {
-    var c = cells[table ? (b - 1) : (a - 1) * TABLE_MAX + (b - 1)];
+    var c = cells[(table && !review) ? (b - 1) : (a - 1) * TABLE_MAX + (b - 1)];
     c.style.background = 'var(--accent)';        // fallback
     c.style.background = c.dataset.color;        // ignored if color-mix unsupported
     c.classList.add('done');
@@ -612,12 +640,10 @@
   }
   function newDeck() {
     deck = [];
-    if (table) {
-      for (var b = 1; b <= TABLE_MAX; b++) deck.push([table, b]);
-    } else {
-      for (var a = 1; a <= TABLE_MAX; a++) {
-        for (var b2 = 1; b2 <= TABLE_MAX; b2++) deck.push([a, b2]);
-      }
+    var lo = (table && !review) ? table : 1;
+    var hi = table || TABLE_MAX;
+    for (var a = lo; a <= hi; a++) {
+      for (var b = 1; b <= TABLE_MAX; b++) deck.push([a, b]);
     }
     shuffle(deck);
     idx = 0;
@@ -645,8 +671,9 @@
   function showQuestion() {
     var q = deck[idx];
     var a = q[0], b = q[1];
-    // in single-table mode, flip the pair sometimes so 7×4 and 4×7 both appear
-    if (table && Math.random() < 0.5) { var t = a; a = b; b = t; }
+    // in single-table mode, flip the pair sometimes so 7×4 and 4×7 both appear;
+    // in review mode only flip when the swapped pair isn't already in the deck
+    if (table && (!review || q[1] > table) && Math.random() < 0.5) { var t = a; a = b; b = t; }
     shownA = a; shownB = b;
     elQuestion.innerHTML = '';
     elQuestion.appendChild(document.createTextNode(a));
@@ -665,11 +692,14 @@
   }
 
   var CHEERS = ['⭐ Nailed it!', '🎯 Bullseye!', '💪 Strong!', '✨ Sparkling!', '🚀 Zooming!', '🧠 Big brain!', '🐘 Trumpet-worthy!', '🔥 On fire!'];
-  var MILESTONES = { 25: '🌟 25 down — the elephant nods approvingly!', 50: '🎉 Halfway-ish! 50 facts conquered!', 100: '🤯 ONE HUNDRED! Only 44 to go!', 130: '👑 130! The crown is within reach!' };
+  var MILESTONES = { 25: '🌟 25 down — the elephant nods approvingly!', 50: '🎉 50 facts conquered — keep rolling!', 100: '🤯 ONE HUNDRED!', 130: '👑 130! The crown is within reach!' };
   function cheer() {
     if (MILESTONES[score]) {
       elFeedback.classList.add('milestone');
-      elFeedback.textContent = MILESTONES[score];
+      // the remainder depends on the mode's TOTAL, so compute it live
+      elFeedback.textContent = score === 100
+        ? MILESTONES[100] + ' Only ' + (TOTAL - score) + ' to go!'
+        : MILESTONES[score];
     } else {
       elFeedback.classList.remove('milestone');
       elFeedback.textContent = CHEERS[Math.floor(Math.random() * CHEERS.length)];
@@ -679,15 +709,25 @@
   // ---------------- game flow ----------------
   function setTable(t) {
     table = t;
-    TOTAL = table ? TABLE_MAX : TABLE_MAX * TABLE_MAX;
+    var rc = $('review-check');
+    rc.disabled = table < 2; // nothing to review before All or the 1 times table
+    if (rc.disabled) rc.checked = false;
+    review = rc.checked;
+    TOTAL = table ? (review ? table * TABLE_MAX : TABLE_MAX) : TABLE_MAX * TABLE_MAX;
     best = readBest();
     score = 0;
     buildMap();
     updateStats();
     $('start-total').textContent = TOTAL;
-    $('tagline').textContent = table
-      ? 'The ' + table + ' times table · one life · answer all ' + TOTAL + ' to win'
-      : 'Times tables 1–12 · one life · answer all 144 to win';
+    var tagline;
+    if (!table) {
+      tagline = 'Times tables 1–12 · one life · answer all 144 to win';
+    } else if (review) {
+      tagline = 'Tables 1–' + table + ' · one life · answer all ' + TOTAL + ' to win';
+    } else {
+      tagline = 'The ' + table + ' times table · one life · answer all ' + TOTAL + ' to win';
+    }
+    $('tagline').textContent = tagline;
     var sb = $('start-best');
     if (best > 0) {
       sb.textContent = '🌟 Personal best: ' + best + ' / ' + TOTAL;
@@ -695,6 +735,9 @@
     } else {
       sb.hidden = true;
     }
+    // announce the new goal to screen readers when the controls change it
+    $('start-announce').textContent = 'Goal: answer ' + TOTAL + ' facts.' +
+      (best > 0 ? ' Personal best: ' + best + ' of ' + TOTAL + '.' : '');
   }
 
   function startGame() {
@@ -780,9 +823,15 @@
   function win() {
     playing = false;
     updateStats();
-    $('win-text').textContent = table
-      ? 'Every fact of the ' + table + ' times table, every single one right. That is a perfect run — even Gray is trumpeting! 🐘🎺'
-      : 'All 144 multiplication facts, every single one right. That is a perfect run — even Gray is trumpeting! 🐘🎺';
+    var winText;
+    if (!table) {
+      winText = 'All 144 multiplication facts, every single one right.';
+    } else if (review) {
+      winText = 'Every fact of tables 1 through ' + table + ', every single one right.';
+    } else {
+      winText = 'Every fact of the ' + table + ' times table, every single one right.';
+    }
+    $('win-text').textContent = winText + ' That is a perfect run — even Gray is trumpeting! 🐘🎺';
     $('win-total').textContent = TOTAL + ' / ' + TOTAL;
     var overlay = $('overlay-win');
     overlay.hidden = false;
@@ -845,9 +894,11 @@
     if (overlay) {
       // keep Tab cycling through the dialog's own controls
       if (e.key === 'Tab') {
-        var found = overlay.querySelectorAll('button, select');
+        var found = overlay.querySelectorAll('button, select, input');
         var list = [];
-        for (var i = 0; i < found.length; i++) list.push(found[i]);
+        for (var i = 0; i < found.length; i++) {
+          if (!found[i].disabled) list.push(found[i]);
+        }
         var pos = list.indexOf(document.activeElement);
         var next = pos === -1
           ? (e.shiftKey ? list[list.length - 1] : list[0])
@@ -880,6 +931,9 @@
   $('btn-table-win').addEventListener('click', backToStart);
   $('table-select').addEventListener('change', function () {
     setTable(parseInt(this.value, 10) || 0);
+  });
+  $('review-check').addEventListener('change', function () {
+    setTable(table);
   });
 
   // a held or mashed Enter must not blast through the just-appeared dialog
