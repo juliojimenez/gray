@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Multiply! — a times-table challenge by Gray</title>
-<meta name="description" content="A free multiplication quiz game for kids from Gray. Times tables 1–12, one life, 144 facts — answer them all to win. No accounts, no ads.">
+<meta name="description" content="A free multiplication quiz game for kids from Gray. Times tables 1–12, three lives, 144 facts — answer them all to win. No accounts, no ads.">
 <meta property="og:title" content="Multiply! — a times-table challenge by Gray">
-<meta property="og:description" content="Times tables 1–12, one life, 144 facts. How far can you get?">
+<meta property="og:description" content="Times tables 1–12, three lives, 144 facts. How far can you get?">
 <meta property="og:url" content="https://gray.academy/multiply">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐘</text></svg>">
@@ -334,6 +334,14 @@
     font-weight: 700;
     margin-bottom: 12px;
   }
+  .panel .lives-line {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 2px 0 12px;
+  }
+  .panel .lives-line .hearts { letter-spacing: 3px; margin-right: 6px; }
+  #stat-lives .value { letter-spacing: 1px; }
   .btn {
     display: inline-block;
     padding: 12px 26px;
@@ -430,12 +438,13 @@
 
 <main>
   <h1>The <span class="grad">Multiplication</span> Challenge</h1>
-  <p class="tagline" id="tagline">Times tables 1–12 · one life · answer all 144 to win</p>
+  <p class="tagline" id="tagline">Times tables 1–12 · 3 lives · answer all 144 to win</p>
 
   <div class="stats">
     <div class="stat" id="stat-score"><div class="label">Score</div><div class="value">0</div></div>
     <div class="stat" id="stat-best"><div class="label">Best</div><div class="value">0</div></div>
     <div class="stat" id="stat-left"><div class="label">To Win</div><div class="value">144</div></div>
+    <div class="stat" id="stat-lives"><div class="label">Lives</div><div class="value" aria-hidden="true">❤️❤️❤️</div><span class="sr-only" role="status" id="lives-sr">3 lives left</span></div>
   </div>
   <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress"></div></div>
 
@@ -474,8 +483,9 @@
     <div class="big-emoji" aria-hidden="true">🐘✖️</div>
     <h2 id="start-title">The <span class="grad">Multiplication</span> Challenge</h2>
     <p>Gray never forgets the times tables — do you?</p>
-    <p>Pick your table, then answer away. Every question is different.
-    One wrong answer ends the run. Get all <strong id="start-total">144</strong> and you <strong>WIN!!</strong></p>
+    <p>Pick your table, then answer away. Every question is different and you get
+    <strong>3 lives</strong> — run out and the game is over.
+    Get all <strong id="start-total">144</strong> and you <strong>WIN!!</strong></p>
     <div class="table-pick">
       <label for="table-select">Practice</label>
       <select id="table-select" autocomplete="off">
@@ -506,11 +516,30 @@
   </div>
 </div>
 
+<!-- ---------- missed-question overlay ---------- -->
+<div class="overlay" id="overlay-miss" role="dialog" aria-modal="true" aria-labelledby="miss-title" aria-describedby="miss-fact miss-lives-text" hidden>
+  <div class="panel">
+    <div class="big-emoji" aria-hidden="true">🙈</div>
+    <h2 id="miss-title">Ooof, not quite!</h2>
+    <div class="fact" id="miss-fact"></div>
+    <p class="lives-line">
+      <span class="hearts" id="miss-hearts" aria-hidden="true"></span>
+      <span id="miss-lives-text"></span>
+    </p>
+    <p>That one will come back around — you've got this!</p>
+    <button class="btn" id="btn-continue" type="button">▶ Keep going</button>
+    <div>
+      <button class="btn btn-ghost" id="btn-restart" type="button">↻ Restart</button>
+      <button class="btn btn-ghost" id="btn-table-miss" type="button">🎚 Pick a different table</button>
+    </div>
+  </div>
+</div>
+
 <!-- ---------- game over overlay ---------- -->
 <div class="overlay" id="overlay-over" role="dialog" aria-modal="true" aria-labelledby="over-title" aria-describedby="over-fact" hidden>
   <div class="panel">
-    <div class="big-emoji" aria-hidden="true">🙈</div>
-    <h2 id="over-title">Ooof, so close!</h2>
+    <div class="big-emoji" aria-hidden="true">💔</div>
+    <h2 id="over-title">Out of lives!</h2>
     <div class="fact" id="over-fact"></div>
     <div class="scoreline">
       <div>This run<strong id="over-score">0</strong></div>
@@ -530,7 +559,7 @@
     <p id="win-text">All 144 multiplication facts, every single one right.
     That is a perfect run — even Gray is trumpeting! 🐘🎺</p>
     <div class="scoreline">
-      <div>Perfect score<strong id="win-total">144 / 144</strong></div>
+      <div><span id="win-score-label">Perfect score</span><strong id="win-total">144 / 144</strong></div>
     </div>
     <button class="btn" id="btn-again-win" type="button">↻ Play again</button>
     <div><button class="btn btn-ghost" id="btn-table-win" type="button">🎚 Pick a different table</button></div>
@@ -545,6 +574,7 @@
 
   var TABLE_MAX = 12;
   var BEST_KEY = 'gray-multiply-best';
+  var LIVES = 3;
 
   // ---------------- state ----------------
   var table = 0;        // 0 = all tables, 1..12 = practice a single table
@@ -553,6 +583,7 @@
   var deck = [];        // shuffled [a, b] pairs — guarantees no repeats
   var idx = 0;          // next question index into deck
   var score = 0;        // correct answers this run
+  var lives = LIVES;    // wrong answers left before the run ends
   var entry = '';       // digits typed so far
   var playing = false;  // a run is active
   var locked = false;   // brief lock between questions
@@ -571,6 +602,7 @@
   var stScore = $('stat-score').querySelector('.value');
   var stBest = $('stat-best').querySelector('.value');
   var stLeft = $('stat-left').querySelector('.value');
+  var stLives = $('stat-lives').querySelector('.value');
 
   var reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -668,6 +700,15 @@
     stLeft.textContent = TOTAL - score;
     elProgress.style.width = (score / TOTAL * 100) + '%';
   }
+  function heartString(n) {
+    var s = '';
+    for (var i = 0; i < LIVES; i++) s += i < n ? '❤️' : '🤍';
+    return s;
+  }
+  function updateLives() {
+    stLives.textContent = heartString(lives);
+    $('lives-sr').textContent = lives === 1 ? '1 life left' : lives + ' lives left';
+  }
   function showQuestion() {
     var q = deck[idx];
     var a = q[0], b = q[1];
@@ -716,16 +757,18 @@
     TOTAL = table ? (review ? table * TABLE_MAX : TABLE_MAX) : TABLE_MAX * TABLE_MAX;
     best = readBest();
     score = 0;
+    lives = LIVES;
     buildMap();
     updateStats();
+    updateLives();
     $('start-total').textContent = TOTAL;
     var tagline;
     if (!table) {
-      tagline = 'Times tables 1–12 · one life · answer all 144 to win';
+      tagline = 'Times tables 1–12 · 3 lives · answer all 144 to win';
     } else if (review) {
-      tagline = 'Tables 1–' + table + ' · one life · answer all ' + TOTAL + ' to win';
+      tagline = 'Tables 1–' + table + ' · 3 lives · answer all ' + TOTAL + ' to win';
     } else {
-      tagline = 'The ' + table + ' times table · one life · answer all ' + TOTAL + ' to win';
+      tagline = 'The ' + table + ' times table · 3 lives · answer all ' + TOTAL + ' to win';
     }
     $('tagline').textContent = tagline;
     var sb = $('start-best');
@@ -743,6 +786,7 @@
   function startGame() {
     newDeck();
     score = 0;
+    lives = LIVES;
     entry = '';
     playing = true;
     locked = false;
@@ -751,9 +795,11 @@
     prevBest = best;
     resetMap();
     updateStats();
+    updateLives();
     elFeedback.textContent = '';
     elFeedback.classList.remove('milestone');
     $('overlay-start').hidden = true;
+    $('overlay-miss').hidden = true;
     $('overlay-over').hidden = true;
     $('overlay-win').hidden = true;
     showQuestion();
@@ -779,19 +825,24 @@
       locked = true;
       setTimeout(function () { locked = false; showQuestion(); }, 380);
     } else {
-      gameOver(q, correct);
+      lives--;
+      updateLives();
+      bump(stLives);
+      if (lives > 0) miss(correct);
+      else gameOver(correct);
     }
   }
 
-  function gameOver(q, correct) {
-    playing = false;
-    if (!reducedMotion) {
-      elCard.classList.remove('shake');
-      void elCard.offsetWidth;
-      elCard.classList.add('shake');
-    }
-    var fact = $('over-fact');
-    fact.innerHTML = '';
+  function shakeCard() {
+    if (reducedMotion) return;
+    elCard.classList.remove('shake');
+    void elCard.offsetWidth;
+    elCard.classList.add('shake');
+  }
+
+  // fill el with "your answer" (struck through) and the corrected fact
+  function renderFact(el, correct) {
+    el.innerHTML = '';
     function srLabel(text) {
       var s = document.createElement('span');
       s.className = 'sr-only';
@@ -806,9 +857,46 @@
     right.className = 'right';
     right.appendChild(srLabel('Correct answer: '));
     right.appendChild(document.createTextNode(shownA + ' × ' + shownB + ' = ' + correct));
-    fact.appendChild(wrong);
-    fact.appendChild(document.createElement('br'));
-    fact.appendChild(right);
+    el.appendChild(wrong);
+    el.appendChild(document.createElement('br'));
+    el.appendChild(right);
+  }
+
+  // wrong answer with lives to spare: show the correction and the choices
+  function miss(correct) {
+    locked = true; // no input while the dialog settles in
+    shakeCard();
+    renderFact($('miss-fact'), correct);
+    $('miss-hearts').textContent = heartString(lives);
+    $('miss-lives-text').textContent = lives === 1 ? 'Careful — last life!' : lives + ' lives left';
+    setTimeout(function () {
+      $('overlay-miss').hidden = false;
+      overlayShownAt = Date.now();
+      $('btn-continue').focus();
+    }, reducedMotion ? 0 : 450);
+  }
+
+  // resume after a miss: slot the missed fact back in to be asked again later
+  function continueRun() {
+    $('overlay-miss').hidden = true;
+    var missed = deck.splice(idx, 1)[0];
+    if (deck.length === idx) {
+      deck.push(missed); // it was the last one — ask it again right away
+    } else {
+      var j = idx + 1 + Math.floor(Math.random() * (deck.length - idx));
+      deck.splice(j, 0, missed);
+    }
+    elFeedback.textContent = '';
+    elFeedback.classList.remove('milestone');
+    locked = false;
+    showQuestion();
+    elQuestion.focus({ preventScroll: true });
+  }
+
+  function gameOver(correct) {
+    playing = false;
+    shakeCard();
+    renderFact($('over-fact'), correct);
     $('over-score').textContent = score;
     $('over-best').textContent = best;
     $('over-record').hidden = !(score > prevBest);
@@ -825,13 +913,17 @@
     updateStats();
     var winText;
     if (!table) {
-      winText = 'All 144 multiplication facts, every single one right.';
+      winText = 'All 144 multiplication facts';
     } else if (review) {
-      winText = 'Every fact of tables 1 through ' + table + ', every single one right.';
+      winText = 'Every fact of tables 1 through ' + table;
     } else {
-      winText = 'Every fact of the ' + table + ' times table, every single one right.';
+      winText = 'Every fact of the ' + table + ' times table';
     }
-    $('win-text').textContent = winText + ' That is a perfect run — even Gray is trumpeting! 🐘🎺';
+    winText += lives === LIVES
+      ? ', every single one right on the first try. A flawless run'
+      : ', every single one conquered. What a comeback';
+    $('win-text').textContent = winText + ' — even Gray is trumpeting! 🐘🎺';
+    $('win-score-label').textContent = lives === LIVES ? 'Perfect score' : 'Final score';
     $('win-total').textContent = TOTAL + ' / ' + TOTAL;
     var overlay = $('overlay-win');
     overlay.hidden = false;
@@ -842,6 +934,8 @@
 
   // back to the start screen to pick a different table
   function backToStart() {
+    playing = false;
+    $('overlay-miss').hidden = true;
     $('overlay-over').hidden = true;
     $('overlay-win').hidden = true;
     setTable(table); // refresh best + reset the displayed run behind the dialog
@@ -883,6 +977,7 @@
 
   function openOverlay() {
     if (!$('overlay-start').hidden) return $('overlay-start');
+    if (!$('overlay-miss').hidden) return $('overlay-miss');
     if (!$('overlay-over').hidden) return $('overlay-over');
     if (!$('overlay-win').hidden) return $('overlay-win');
     return null;
@@ -918,7 +1013,8 @@
   // a fast double-tap on the keypad must not blast through the just-appeared
   // dialog either — swallow clicks that land within its settle window
   // (registered first, so stopImmediatePropagation beats the action handlers)
-  ['btn-start', 'btn-again', 'btn-again-win', 'btn-table', 'btn-table-win'].forEach(function (id) {
+  ['btn-start', 'btn-again', 'btn-again-win', 'btn-continue', 'btn-restart',
+   'btn-table', 'btn-table-win', 'btn-table-miss'].forEach(function (id) {
     $(id).addEventListener('click', function (e) {
       if (Date.now() - overlayShownAt < 350) e.stopImmediatePropagation();
     });
@@ -927,8 +1023,11 @@
   $('btn-start').addEventListener('click', startGame);
   $('btn-again').addEventListener('click', startGame);
   $('btn-again-win').addEventListener('click', startGame);
+  $('btn-restart').addEventListener('click', startGame);
+  $('btn-continue').addEventListener('click', continueRun);
   $('btn-table').addEventListener('click', backToStart);
   $('btn-table-win').addEventListener('click', backToStart);
+  $('btn-table-miss').addEventListener('click', backToStart);
   $('table-select').addEventListener('change', function () {
     setTable(parseInt(this.value, 10) || 0);
   });
@@ -948,6 +1047,8 @@
   guardMash($('btn-start'));
   guardMash($('btn-again'));
   guardMash($('btn-again-win'));
+  guardMash($('btn-continue'));
+  guardMash($('btn-restart'));
 
   // ---------------- confetti ----------------
   var confettiTimer = null;
