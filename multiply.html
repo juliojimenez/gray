@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Multiply! — a times-table challenge by Gray</title>
-<meta name="description" content="A free multiplication quiz game for kids from Gray. Times tables 1–12, three lives, 144 facts — answer them all to win. No accounts, no ads.">
+<meta name="description" content="A free multiplication quiz game for kids from Gray. Times tables 1–12, three lives, 144 facts — how fast can you answer them all? No accounts, no ads.">
 <meta property="og:title" content="Multiply! — a times-table challenge by Gray">
-<meta property="og:description" content="Times tables 1–12, three lives, 144 facts. How far can you get?">
+<meta property="og:description" content="Times tables 1–12, three lives, 144 facts. How fast can you get them all?">
 <meta property="og:url" content="https://gray.academy/multiply">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐘</text></svg>">
@@ -445,6 +445,7 @@
     <div class="stat" id="stat-best"><div class="label">Best</div><div class="value">0</div></div>
     <div class="stat" id="stat-left"><div class="label">To Win</div><div class="value">144</div></div>
     <div class="stat" id="stat-lives"><div class="label">Lives</div><div class="value" aria-hidden="true">❤️❤️❤️</div><span class="sr-only" role="status" id="lives-sr">3 lives left</span></div>
+    <div class="stat" id="stat-time"><div class="label">Time</div><div class="value">0:00</div></div>
   </div>
   <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress"></div></div>
 
@@ -485,7 +486,8 @@
     <p>Gray never forgets the times tables — do you?</p>
     <p>Pick your table, then answer away. Every question is different and you get
     <strong>3 lives</strong> — run out and the game is over.
-    Get all <strong id="start-total">144</strong> and you <strong>WIN!!</strong></p>
+    Get all <strong id="start-total">144</strong> and you <strong>WIN!!</strong>
+    Finish in under <strong id="start-clock">12:00</strong> ⏱ for extra glory.</p>
     <div class="table-pick">
       <label for="table-select">Practice</label>
       <select id="table-select" autocomplete="off">
@@ -512,6 +514,7 @@
     </div>
     <p class="sr-only" id="start-announce" role="status"></p>
     <p class="record" id="start-best" hidden></p>
+    <p class="record" id="start-fast" hidden></p>
     <button class="btn" id="btn-start" type="button">▶ Start</button>
   </div>
 </div>
@@ -560,7 +563,10 @@
     That is a perfect run — even Gray is trumpeting! 🐘🎺</p>
     <div class="scoreline">
       <div><span id="win-score-label">Perfect score</span><strong id="win-total">144 / 144</strong></div>
+      <div>Time<strong id="win-time">0:00</strong></div>
     </div>
+    <p class="record" id="win-par" hidden></p>
+    <p class="record" id="win-fast" hidden>⚡ New fastest time!</p>
     <button class="btn" id="btn-again-win" type="button">↻ Play again</button>
     <div><button class="btn btn-ghost" id="btn-table-win" type="button">🎚 Pick a different table</button></div>
   </div>
@@ -575,6 +581,7 @@
   var TABLE_MAX = 12;
   var BEST_KEY = 'gray-multiply-best';
   var LIVES = 3;
+  var SECS_PER_TABLE = 60; // one minute per times table covered
 
   // ---------------- state ----------------
   var table = 0;        // 0 = all tables, 1..12 = practice a single table
@@ -590,6 +597,10 @@
   var prevBest = 0;     // best as it stood when this run started
   var overlayShownAt = 0;
   var shownA = 0, shownB = 0; // operands as displayed (single-table mode may flip them)
+  var elapsedBase = 0;  // ms on the clock before the current active stretch
+  var runStartedAt = 0; // performance.now() when the clock (re)started; 0 while paused/stopped
+  var timerId = null;
+  var nextQTimer = 0;   // pending next-question timeout, cancelled when a run ends
 
   // ---------------- elements ----------------
   var $ = function (id) { return document.getElementById(id); };
@@ -603,6 +614,7 @@
   var stBest = $('stat-best').querySelector('.value');
   var stLeft = $('stat-left').querySelector('.value');
   var stLives = $('stat-lives').querySelector('.value');
+  var stTime = $('stat-time').querySelector('.value');
 
   var reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -620,6 +632,66 @@
     try { localStorage.setItem(bestKey(), String(n)); } catch (e) { /* no storage */ }
   }
   var best = 0; // set by setTable() at boot
+
+  // fastest winning run per mode, in ms (0 = no win recorded yet);
+  // clamp out garbage values (anything beyond a day is not a real run)
+  function readBestTime() {
+    try {
+      var n = parseInt(localStorage.getItem(bestKey() + '-time'), 10);
+      return n > 0 && n <= 86400000 ? n : 0;
+    } catch (e) { return 0; }
+  }
+  function writeBestTime(ms) {
+    try { localStorage.setItem(bestKey() + '-time', String(ms)); } catch (e) { /* no storage */ }
+  }
+
+  // ---------------- run clock ----------------
+  // the friendly goal, not a deadline: 1:00 per table covered
+  function parTimeMs() {
+    return (TOTAL / TABLE_MAX) * SECS_PER_TABLE * 1000;
+  }
+  function elapsedMs() {
+    return elapsedBase + (runStartedAt ? performance.now() - runStartedAt : 0);
+  }
+  // whole-seconds stopwatch display
+  function fmtTime(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var m = Math.floor(s / 60);
+    var r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+  // elapsed/record display: tenths, so beating a record is visibly different
+  function fmtElapsed(ms) {
+    var t = Math.max(0, Math.floor(ms / 100)); // tenths of a second
+    var m = Math.floor(t / 600);
+    var r = (t % 600) / 10;
+    return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1);
+  }
+  function renderTimer() {
+    stTime.textContent = fmtTime(elapsedMs());
+  }
+  function startTimer() {
+    elapsedBase = 0;
+    runStartedAt = performance.now();
+    if (!timerId) timerId = setInterval(renderTimer, 250);
+    renderTimer();
+  }
+  function pauseTimer() {
+    if (runStartedAt) {
+      elapsedBase += performance.now() - runStartedAt;
+      runStartedAt = 0;
+    }
+  }
+  function resumeTimer() {
+    if (playing && !runStartedAt) runStartedAt = performance.now();
+  }
+  function stopTimer() {
+    pauseTimer();
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
 
   // ---------------- conquest map ----------------
   var cells = [];
@@ -778,12 +850,25 @@
     } else {
       sb.hidden = true;
     }
+    $('start-clock').textContent = fmtTime(parTimeMs());
+    stTime.textContent = '0:00';
+    var fastest = readBestTime();
+    var sf = $('start-fast');
+    if (fastest > 0) {
+      sf.textContent = '⚡ Fastest win: ' + fmtElapsed(fastest);
+      sf.hidden = false;
+    } else {
+      sf.hidden = true;
+    }
     // announce the new goal to screen readers when the controls change it
-    $('start-announce').textContent = 'Goal: answer ' + TOTAL + ' facts.' +
-      (best > 0 ? ' Personal best: ' + best + ' of ' + TOTAL + '.' : '');
+    $('start-announce').textContent = 'Goal: answer ' + TOTAL + ' facts. Finish under ' +
+      fmtTime(parTimeMs()) + ' for extra glory.' +
+      (best > 0 ? ' Personal best: ' + best + ' of ' + TOTAL + '.' : '') +
+      (fastest > 0 ? ' Fastest win: ' + fmtElapsed(fastest) + '.' : '');
   }
 
   function startGame() {
+    clearTimeout(nextQTimer);
     newDeck();
     score = 0;
     lives = LIVES;
@@ -802,6 +887,7 @@
     $('overlay-miss').hidden = true;
     $('overlay-over').hidden = true;
     $('overlay-win').hidden = true;
+    startTimer();
     showQuestion();
     elQuestion.focus({ preventScroll: true });
   }
@@ -823,7 +909,7 @@
       cheer();
       idx++;
       locked = true;
-      setTimeout(function () { locked = false; showQuestion(); }, 380);
+      nextQTimer = setTimeout(function () { locked = false; showQuestion(); }, 380);
     } else {
       lives--;
       updateLives();
@@ -865,6 +951,7 @@
   // wrong answer with lives to spare: show the correction and the choices
   function miss(correct) {
     locked = true; // no input while the dialog settles in
+    pauseTimer();  // reading the correction shouldn't cost clock time
     shakeCard();
     renderFact($('miss-fact'), correct);
     $('miss-hearts').textContent = heartString(lives);
@@ -889,14 +976,12 @@
     elFeedback.textContent = '';
     elFeedback.classList.remove('milestone');
     locked = false;
+    resumeTimer();
     showQuestion();
     elQuestion.focus({ preventScroll: true });
   }
 
-  function gameOver(correct) {
-    playing = false;
-    shakeCard();
-    renderFact($('over-fact'), correct);
+  function showGameOver() {
     $('over-score').textContent = score;
     $('over-best').textContent = best;
     $('over-record').hidden = !(score > prevBest);
@@ -908,8 +993,27 @@
     }, reducedMotion ? 0 : 450);
   }
 
+  function gameOver(correct) {
+    playing = false;
+    clearTimeout(nextQTimer);
+    stopTimer();
+    shakeCard();
+    renderFact($('over-fact'), correct);
+    showGameOver();
+  }
+
   function win() {
     playing = false;
+    stopTimer();
+    var runTime = elapsedMs();
+    var fastest = readBestTime();
+    var newFastest = !fastest || runTime < fastest;
+    if (newFastest) writeBestTime(runTime);
+    $('win-time').textContent = fmtElapsed(runTime);
+    var wp = $('win-par');
+    wp.textContent = '🚀 Speedy! You beat the ' + fmtTime(parTimeMs()) + ' goal!';
+    wp.hidden = !(runTime <= parTimeMs());
+    $('win-fast').hidden = !newFastest;
     updateStats();
     var winText;
     if (!table) {
@@ -935,6 +1039,8 @@
   // back to the start screen to pick a different table
   function backToStart() {
     playing = false;
+    clearTimeout(nextQTimer);
+    stopTimer();
     $('overlay-miss').hidden = true;
     $('overlay-over').hidden = true;
     $('overlay-win').hidden = true;
