@@ -155,8 +155,9 @@
   }
   .key-input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
   .panel p.fine { font-size: .82rem; margin: 16px 0 0; }
-  /* .big-btn sets display, which would otherwise beat the hidden attribute */
-  #claim [hidden] { display: none; }
+  /* .big-btn and .choices set display, which would otherwise beat the
+     hidden attribute */
+  .big-btn[hidden], #claim [hidden] { display: none; }
 </style>
 </head>
 <body>
