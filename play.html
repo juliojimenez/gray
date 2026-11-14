@@ -154,6 +154,9 @@
     margin-bottom: 18px;
   }
   .key-input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+  .panel p.fine { font-size: .82rem; margin: 16px 0 0; }
+  /* .big-btn sets display, which would otherwise beat the hidden attribute */
+  #claim [hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -177,6 +180,7 @@
 <footer>
   Type <code>hint</code> if you're stuck · <code>menu</code> to pick a section · <code>quit</code> to stop —
   progress is saved in this browser · <a href="privacy.html" target="_blank" rel="noopener">privacy</a>
+  · <a href="terms.html" target="_blank" rel="noopener">terms</a>
 </footer>
 
 <div class="overlay" id="picker" hidden>
@@ -207,9 +211,13 @@
               autocomplete="off" spellcheck="false"></p>
     <div class="choices">
       <button class="big-btn py" id="btn-unlock">🔓 Unlock</button>
-      <a class="big-btn lua" id="btn-buy" target="_blank" rel="noopener"
-         href="https://grayacademy.lemonsqueezy.com/checkout/buy/4a270444-ab93-4318-8adf-7e4826790d31">✨ Get the subscription</a>
+      <!-- same tab on purpose: Stripe sends the buyer back to this page -->
+      <a class="big-btn lua" id="btn-buy"
+         href="https://buy.stripe.com/4gMfZgfpw9v356jeDPfEk00">✨ Subscribe · $5 a month</a>
     </div>
+    <p class="fine">US$5 a month, cancel anytime, no refunds
+       (<a href="terms.html" target="_blank" rel="noopener">terms</a>). Subscribing is for grown-ups.
+       Lost your key? Write to <a href="mailto:julio@julioj.com">julio@julioj.com</a>.</p>
     <p style="margin: 14px 0 0"><a class="plain" id="unlock-free-link" href="play.html">or keep playing the free Foundations path</a></p>
   </div>
 </div>
@@ -223,6 +231,25 @@
       <button class="big-btn lua" id="btn-run-overlay" hidden>▶ Run my program</button>
     </div>
     <p style="margin: 14px 0 0"><button class="linkish" id="btn-peek">just looking at the terminal, thanks</button></p>
+  </div>
+</div>
+
+<!-- shown when a new subscriber comes back from checkout; last in the
+     page so it sits on top of the other overlays -->
+<div class="overlay" id="claim" hidden>
+  <div class="panel">
+    <h1 id="claim-title">🔑 One moment…</h1>
+    <p id="claim-msg">Finishing your subscription.</p>
+    <p id="claim-key-row" hidden><input class="key-input" id="claim-key" readonly
+       aria-label="Your subscription key" autocomplete="off" spellcheck="false"></p>
+    <div class="choices">
+      <button class="big-btn lua" id="btn-claim-copy" hidden>📋 Copy the key</button>
+      <button class="big-btn py" id="btn-claim-go" hidden>▶ Start playing</button>
+      <button class="big-btn py" id="btn-claim-retry" hidden>🔁 Try again</button>
+    </div>
+    <div class="choices" id="claim-paths" hidden style="margin-top: 12px"></div>
+    <p class="fine" id="claim-fine" hidden></p>
+    <p style="margin: 14px 0 0"><button class="linkish" id="btn-claim-close" hidden>not now</button></p>
   </div>
 </div>
 
@@ -248,10 +275,185 @@
     ? "http://localhost:8766"
     : "https://gray-paths.julio-f69.workers.dev";
   const LICENSE_KEY_STORE = "gray-license-key";
+  const CLAIM_STORE = "gray-claim";
+  const RETURN_STORE = "gray-return";
+  const SUPPORT_EMAIL = "julio@julioj.com";
 
   function setStatus(text) {
     document.getElementById("status").textContent = text;
   }
+
+  // ---------------- back from checkout ----------------
+  // Stripe sends a new subscriber back here with ?session_id=… in the
+  // address. Take it out of the address bar straight away, so it isn't
+  // counted, bookmarked or shared, and park it in sessionStorage: on a
+  // first visit the coi service worker reloads this page once, and the
+  // id has to survive that.
+  const claimId = (() => {
+    let id = params.get("session_id") || "";
+    try {
+      if (id) sessionStorage.setItem(CLAIM_STORE, id);
+      else id = sessionStorage.getItem(CLAIM_STORE) || "";
+    } catch (err) { /* storage blocked — the id from the address still works for this load */ }
+    if (params.has("session_id")) {
+      params.delete("session_id");
+      const rest = params.toString();
+      history.replaceState(null, "", location.pathname + (rest ? "?" + rest : "") + location.hash);
+    }
+    return id;
+  })();
+
+  // The visit counter (count.js, loaded at the bottom of the page) sends
+  // the page's address and document.referrer. After the coi reload the
+  // referrer is this page's own old address, session id and all, so
+  // scrub the id out of anything that gets counted.
+  const scrubSession = (address) =>
+    String(address || "").replace(/([?&])session_id=[^&#]*&?/, "$1").replace(/[?&]$/, "");
+  window.goatcounter = { path: scrubSession, referrer: scrubSession };
+
+  // Swap the checkout session for a subscription key, with the "claim"
+  // overlay on top of everything while that happens. The promise settles
+  // when the overlay closes, whichever way it went.
+  function claimKey(sessionId) {
+    const el = (id) => document.getElementById(id);
+    const forget = () => {
+      try { sessionStorage.removeItem(CLAIM_STORE); } catch (err) { /* storage blocked */ }
+    };
+    const show = (title, message, extras) => {
+      const { key = "", go = "", retry = false, close = false, closeLabel = "not now",
+              paths = false, fine = "" } = extras || {};
+      el("claim-title").textContent = title;
+      el("claim-msg").textContent = message;
+      el("claim-key").value = key;
+      el("claim-key-row").hidden = !key;
+      el("btn-claim-copy").hidden = !key;
+      el("btn-claim-copy").textContent = "📋 Copy the key";
+      el("btn-claim-go").hidden = !go;
+      el("btn-claim-go").textContent = go;
+      el("btn-claim-retry").hidden = !retry;
+      el("btn-claim-close").hidden = !close;
+      el("btn-claim-close").textContent = closeLabel;
+      // one button per paid path, for a buyer who didn't come from one
+      const list = el("claim-paths");
+      list.textContent = "";
+      if (paths) {
+        Object.keys(PATHS).filter((id) => !PATHS[id].free).forEach((id) => {
+          const link = document.createElement("a");
+          link.className = "big-btn py";
+          link.href = "play.html?path=" + id;
+          link.textContent = "🗺 Play " + PATHS[id].title;
+          list.append(link);
+        });
+      }
+      list.hidden = !paths;
+      // the small print may name the support address ("{email}"), which
+      // becomes a link
+      const [before, after] = fine.split("{email}");
+      el("claim-fine").textContent = before;
+      if (after !== undefined) {
+        const link = document.createElement("a");
+        link.href = "mailto:" + SUPPORT_EMAIL;
+        link.textContent = SUPPORT_EMAIL;
+        el("claim-fine").append(link, after);
+      }
+      el("claim-fine").hidden = !fine;
+      el("claim").hidden = false;
+    };
+
+    // Where a new subscriber goes next. The subscription covers every path,
+    // so the address Stripe sends them back to doesn't name one.
+    const afterCheckout = () => {
+      if (path !== "foundations") return { stay: true }; // already on a paid path
+      let saved = "";
+      try {
+        saved = sessionStorage.getItem(RETURN_STORE) || "";
+        sessionStorage.removeItem(RETURN_STORE);
+      } catch (err) { /* storage blocked */ }
+      // the path and language they were on when they pressed Subscribe
+      const back = new URLSearchParams(saved);
+      const backPath = back.get("path");
+      const backLang = back.get("lang");
+      if (Object.prototype.hasOwnProperty.call(PATHS, backPath) && !PATHS[backPath].free &&
+          (backLang === "python" || backLang === "lua")) {
+        return { href: "play.html?lang=" + backLang + "&path=" + backPath };
+      }
+      return { choose: true }; // came from the homepage: offer the paid paths
+    };
+
+    return new Promise((resolve) => {
+      const close = () => { el("claim").hidden = true; resolve(); };
+      let onGo = close;
+
+      const attempt = () => {
+        onGo = close;
+        show("🔑 One moment…", "Finishing your subscription.");
+        fetch(PATHS_URL + "/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId }),
+          cache: "no-store",
+        })
+          .then((res) => res.json().catch(() => ({})).then((data) => ({ status: res.status, data })))
+          .then(({ status, data }) => {
+            if (status === 200 && typeof data.key === "string" && data.key) {
+              saveKey(data.key);
+              forget();
+              const next = afterCheckout();
+              if (next.href) onGo = () => { location.assign(next.href); };
+              show("🎉 You're subscribed!",
+                "Every paid path is now unlocked in this browser. This is your subscription key:", {
+                  key: data.key,
+                  go: next.choose ? "" : "▶ Start playing",
+                  paths: !!next.choose,
+                  close: !!next.choose,
+                  closeLabel: "or play the free Foundations path",
+                  fine: "Keep a copy somewhere safe. Paste it into Gray on another computer to " +
+                    "unlock the paths there. Lost it? Write to {email}.",
+                });
+            } else if (status === 409 || status >= 500) {
+              // 409: the payment hasn't landed yet. 5xx: the check is down.
+              show("⏳ Almost there…",
+                status === 409
+                  ? "Your payment is still going through. Give it a moment, then try again."
+                  : "We can't check your subscription right this second. Give it a moment, then try again.",
+                { retry: true, close: true,
+                  fine: "Still stuck? Write to {email} and we'll sort it out." });
+            } else {
+              forget();
+              show("🙈 That didn't work",
+                "We couldn't match that checkout to a subscription.",
+                { go: "Close",
+                  fine: "If you were charged, write to {email} and we'll sort it out." });
+            }
+          })
+          .catch(() => {
+            show("📡 Can't reach Gray",
+              "Check your internet connection, then try again.",
+              { retry: true, close: true });
+          });
+      };
+
+      el("btn-claim-retry").addEventListener("click", attempt);
+      el("btn-claim-go").addEventListener("click", () => onGo());
+      el("btn-claim-close").addEventListener("click", close);
+      el("btn-claim-copy").addEventListener("click", () => {
+        const input = el("claim-key");
+        const copied = () => { el("btn-claim-copy").textContent = "✅ Copied"; };
+        // no clipboard access? select the key so it can be copied by hand
+        const byHand = () => { input.focus(); input.select(); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(input.value).then(copied, byHand);
+        } else {
+          byHand();
+        }
+      });
+
+      attempt();
+    });
+  }
+
+  // the course waits for this before it loads, so a brand-new key is in place
+  const claimDone = claimId ? claimKey(claimId) : Promise.resolve();
 
   if (lang !== "python" && lang !== "lua") {
     if (path !== "foundations") {
@@ -614,7 +816,8 @@
     document.getElementById("unlock-title").textContent = "🗺 " + (pathInfo.title || "This path");
     document.getElementById("unlock-msg").textContent = rejected
       ? "That key doesn't seem to be active. Check it for typos — and that the subscription is still running."
-      : "This path is part of the Gray subscription. Paste your key to unlock every paid path — current and future.";
+      : "This path is part of the Gray subscription, which unlocks every paid path — current and future. " +
+        "Got a key? Paste it here. No key yet? Ask a grown-up.";
     document.getElementById("unlock-free-link").href = "play.html?lang=" + lang;
     document.getElementById("unlock-key").value = storedKey();
     document.getElementById("unlock").hidden = false;
@@ -645,7 +848,7 @@
   }
 
   function loadAndBoot() {
-    fetchCourse()
+    claimDone.then(fetchCourse)
       .then((text) => {
         sourceText = text;
         boot("course");
@@ -660,6 +863,13 @@
         setState("done");
       });
   }
+
+  // remember where the buyer was, so checkout can bring them straight back
+  document.getElementById("btn-buy").addEventListener("click", () => {
+    try {
+      sessionStorage.setItem(RETURN_STORE, "?lang=" + lang + "&path=" + path);
+    } catch (err) { /* storage blocked — they'll pick the path again */ }
+  });
 
   onClick("btn-unlock", () => {
     const key = document.getElementById("unlock-key").value.trim();
