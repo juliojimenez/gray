@@ -70,6 +70,7 @@
   section { margin: 30px 0; }
   h2 { font-size: 1.25rem; margin-bottom: 8px; }
   p, li { color: var(--ink-soft); }
+  p + p { margin-top: 10px; }
   ul { padding-left: 22px; margin-top: 6px; }
   li { margin-bottom: 6px; }
   strong { color: var(--ink); }
@@ -86,7 +87,7 @@
 <header class="wrap">
   <a class="home" href="index.html" title="Back to Gray">🐘</a>
   <h1>Privacy, in plain words</h1>
-  <p class="updated">Effective July 10, 2026</p>
+  <p class="updated">Effective November 14, 2026</p>
 </header>
 
 <main class="wrap">
@@ -95,7 +96,9 @@
     <strong>The short version:</strong> Gray doesn't know who you are, and likes it
     that way. No accounts, no ads, no cookies, no data sold — ever. Course progress
     stays in your own browser, and what you (or your kid) type in the course never
-    leaves your device.
+    leaves your device. The one exception is a grown-up who buys the optional
+    subscription: that purchase goes through Stripe, and it's
+    <a href="#subscription">explained below</a>.
   </div>
 
   <section>
@@ -109,9 +112,14 @@
           built during graduation.</li>
       <li><strong>Small technical notes</strong> — a cached copy of the visitor
           counter and a one-time flag the page uses to set itself up.</li>
+      <li><strong>Subscription key</strong> — only if a grown-up has subscribed:
+          the key that unlocks the paid paths.</li>
     </ul>
-    <p>None of this is ever transmitted anywhere. It belongs to you: the
-    <em>Start over</em> button on the play page erases the course data, and
+    <p>Progress and programs are never transmitted anywhere. The subscription
+    key is the one thing that travels: it's sent to Gray's own server when a
+    paid path loads, to check the subscription
+    (<a href="#subscription">more on that below</a>). All of it belongs to you:
+    the <em>Start over</em> button on the play page erases the course data, and
     clearing your browser's site data removes everything.</p>
   </section>
 
@@ -148,11 +156,39 @@
     course is never sent to us, to jsDelivr, or to anyone else.</p>
   </section>
 
+  <section id="subscription">
+    <h2>Buying the subscription</h2>
+    <p>The paid learning paths are optional, and buying them is a grown-up's
+    job. Checkout happens on <a href="https://stripe.com">Stripe</a>'s pages,
+    not ours. Stripe collects the buyer's name, email, billing address and
+    card details, takes the payment and sends the receipts, and it (or its
+    Link service) may appear as the seller on the receipt. Gray never sees
+    card numbers. What Stripe does with that information is covered by
+    <a href="https://stripe.com/privacy">Stripe's privacy policy</a>.</p>
+    <p>Through Stripe we can see who has subscribed (their name, email and
+    billing details, though never a full card number) and whether the
+    subscription is still running. We use that to provide the subscription and
+    to answer email about it, and for nothing else.</p>
+    <p>When checkout finishes, Stripe sends the buyer back to the play page
+    with a reference to that checkout, and the page hands it to Gray's paths
+    server once to receive the subscription key. From then on, whenever a paid
+    path loads, the page sends the key to that server, which asks Stripe
+    whether the subscription is active and then sends back the course. The
+    server runs on <a href="https://www.cloudflare.com">Cloudflare</a>, which
+    sees a standard web request, as any host does. It doesn't keep a list of
+    keys or of who asked for what. It only remembers for ten minutes that a
+    key was good, so it doesn't have to ask Stripe again on every visit.</p>
+    <p>A kid playing a paid path is never asked for a name, an email or
+    anything else personal. The key is all the page needs.</p>
+  </section>
+
   <section>
     <h2>Made for kids</h2>
-    <p>Gray is built for children, so it's designed to collect nothing personal:
-    no names, no emails, no accounts, no chat, nothing typed in a lesson ever
-    leaves the device. Parents: the entire course is
+    <p>Gray is built for children, so it's designed to collect nothing personal
+    from them: no names, no emails, no accounts, no chat, and nothing typed in
+    a lesson ever leaves the device. The only time anyone's details are
+    involved is when a grown-up subscribes, and that happens on Stripe's
+    checkout. Parents: the Foundations course and the page that runs it are
     <a href="https://github.com/juliojimenez/gray">open source</a>, so you can
     read every line of what your kid is running.</p>
   </section>
@@ -160,14 +196,15 @@
   <section>
     <h2>Questions or changes</h2>
     <p>If this page changes, the date at the top changes with it. Questions or
-    concerns are welcome as issues on the
+    concerns are welcome at
+    <a href="mailto:julio@julioj.com">julio@julioj.com</a>, or as issues on the
     <a href="https://github.com/juliojimenez/gray">GitHub repository</a>.</p>
   </section>
 
 </main>
 
 <footer>
-  <p>🐘 <a href="index.html">Back to Gray</a></p>
+  <p>🐘 <a href="index.html">Back to Gray</a> · <a href="terms.html">Terms</a></p>
 </footer>
 
 <script data-goatcounter="https://grayacademy.goatcounter.com/count"
