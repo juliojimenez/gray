@@ -189,3 +189,15 @@ can build on earlier ones — and a failed attempt is rolled back, so it
 never corrupts the variables a later check depends on. To grow the
 course, append a new section with a `lessons` list — or park an idea as
 a `coming_soon: true` stub, which shows locked (🔒) in the menu.
+
+## License
+
+Copyright 2026 Julio Jimenez. Licensed under the Apache License, Version 2.0;
+see [LICENSE](LICENSE). That covers what is in this repository: the
+Foundations course, the play page and the website. The paid paths are not
+part of it.
+
+The Python, Lua and Apple logos belong to their owners and are not covered.
+[coi-serviceworker.js](coi-serviceworker.js) is adapted from
+[coi-serviceworker](https://github.com/gzuidhof/coi-serviceworker) by Guido
+Zuidhof and contributors, which is MIT licensed.
